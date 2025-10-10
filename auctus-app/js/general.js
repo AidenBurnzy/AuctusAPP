@@ -1,29 +1,17 @@
 // Auctus General User Dashboard JavaScript
-// Handles functionality for general users (limited access)
 
 // Check authentication
 const currentUser = checkAuth('general');
-if (!currentUser) {
-    // checkAuth will redirect if not authenticated
-} else {
+if (currentUser) {
     initializeDashboard();
 }
 
 function initializeDashboard() {
-    // Navigation
     setupNavigation();
-    
-    // Logout
     setupLogout();
-    
-    // Load initial data
     updateDashboardStats();
     loadRecentActivity();
-    
-    // To-Do List (read-only for general users)
     loadTodos();
-    
-    // Client List (limited view)
     setupClientList();
 }
 
@@ -43,15 +31,12 @@ function setupNavigation() {
         item.addEventListener('click', () => {
             const sectionId = item.dataset.section;
             
-            // Update active nav item
             navItems.forEach(nav => nav.classList.remove('active'));
             item.classList.add('active');
             
-            // Show corresponding section
             sections.forEach(section => section.classList.remove('active'));
             document.getElementById(`${sectionId}-section`).classList.add('active');
             
-            // Update title
             sectionTitle.textContent = titles[sectionId];
         });
     });
@@ -60,11 +45,7 @@ function setupNavigation() {
 // Logout functionality
 function setupLogout() {
     document.getElementById('logoutBtn').addEventListener('click', () => {
-        localStorage.removeItem('auctusUser');
-        showToast('Logged out successfully', 'success');
-        setTimeout(() => {
-            window.location.href = 'index.html';
-        }, 1000);
+        logout();
     });
 }
 
@@ -95,7 +76,6 @@ function loadTodos() {
     const todoList = document.getElementById('todoList');
     const todos = getStorageData('auctusTodos', []);
     
-    // General users see all incomplete tasks
     const incompleteTodos = todos.filter(t => !t.completed);
     
     if (incompleteTodos.length === 0) {
@@ -130,7 +110,6 @@ function markTaskComplete(todoId) {
         updateDashboardStats();
         showToast('Task completed!', 'success');
         
-        // Log activity
         const activities = getStorageData('auctusActivity', []);
         activities.unshift({
             id: generateId(),
@@ -139,10 +118,11 @@ function markTaskComplete(todoId) {
             date: new Date().toISOString()
         });
         saveStorageData('auctusActivity', activities);
+        loadRecentActivity();
     }
 }
 
-// Client List (Limited view - no financial info or actions)
+// Client List (Limited view)
 function setupClientList() {
     const clientSearch = document.querySelector('#clients-section .search-input');
     
