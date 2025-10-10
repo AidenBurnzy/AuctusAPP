@@ -1,89 +1,109 @@
-// Auctus Authentication System
-// This handles login and session management
+// Auctus Authentication System - API Version
+// This version connects to your backend API
 
-// Demo credentials (In production, replace with secure backend authentication)
-const CREDENTIALS = {
-    admin: {
-        username: 'admin',
-        password: 'auctus2025',
-        type: 'admin'
-    },
-    general: {
-        username: 'user',
-        password: 'auctus2025',
-        type: 'general'
-    }
-};
+const API_URL = 'http://localhost:3001/api';
 
 // Check if user is already logged in
 function checkExistingSession() {
-    const currentUser = JSON.parse(localStorage.getItem('auctusUser') || 'null');
+    const token = localStorage.getItem('auctusToken');
+    const userType = localStorage.getItem('auctusUserType');
     
-    if (currentUser && currentUser.sessionExpiry > Date.now()) {
-        // Valid session exists, redirect to appropriate dashboard
-        redirectToDashboard(currentUser.type);
+    if (token && userType) {
+        // Verify token is still valid by checking expiry
+        const tokenData = parseJwt(token);
+        if (tokenData && tokenData.exp * 1000 > Date.now()) {
+            redirectToDashboard(userType);
+        } else {
+            // Token expired, clear it
+            localStorage.removeItem('auctusToken');
+            localStorage.removeItem('auctusUserType');
+        }
+    }
+}
+
+// Parse JWT token
+function parseJwt(token) {
+    try {
+        return JSON.parse(atob(token.split('.')[1]));
+    } catch (e) {
+        return null;
     }
 }
 
 // Handle login form submission
-document.getElementById('loginForm').addEventListener('submit', function(e) {
+document.getElementById('loginForm').addEventListener('submit', async function(e) {
     e.preventDefault();
     
     const username = document.getElementById('username').value.trim();
     const password = document.getElementById('password').value;
     const userType = document.getElementById('userType').value;
     const errorMessage = document.getElementById('errorMessage');
+    const submitButton = this.querySelector('button[type="submit"]');
     
     // Clear previous error
     errorMessage.style.display = 'none';
     errorMessage.textContent = '';
     
-    // Validate credentials
-    if (validateCredentials(username, password, userType)) {
-        // Create session
-        const sessionData = {
-            username: username,
-            type: userType,
-            loginTime: Date.now(),
-            sessionExpiry: Date.now() + (8 * 60 * 60 * 1000) // 8 hours
-        };
+    // Disable button during request
+    submitButton.disabled = true;
+    submitButton.textContent = 'Signing In...';
+    
+    try {
+        // Call backend API
+        const response = await fetch(`${API_URL}/auth/login`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                username,
+                password,
+                userType
+            })
+        });
         
-        // Store session
-        localStorage.setItem('auctusUser', JSON.stringify(sessionData));
+        const data = await response.json();
         
-        // Add login animation
-        const loginCard = document.querySelector('.login-card');
-        loginCard.style.animation = 'slideDown 0.5s ease-in forwards';
-        
-        // Redirect after animation
-        setTimeout(() => {
-            redirectToDashboard(userType);
-        }, 500);
-    } else {
-        // Show error message
-        errorMessage.textContent = 'Invalid credentials. Please check your username, password, and access level.';
+        if (response.ok && data.success) {
+            // Store token and user info
+            localStorage.setItem('auctusToken', data.token);
+            localStorage.setItem('auctusUserType', data.user.type);
+            localStorage.setItem('auctusUsername', data.user.username);
+            
+            // Add login animation
+            const loginCard = document.querySelector('.login-card');
+            loginCard.style.animation = 'slideDown 0.5s ease-in forwards';
+            
+            // Redirect after animation
+            setTimeout(() => {
+                redirectToDashboard(data.user.type);
+            }, 500);
+        } else {
+            // Show error message
+            errorMessage.textContent = data.error || 'Invalid credentials. Please try again.';
+            errorMessage.style.display = 'block';
+            
+            // Shake animation for error
+            const loginCard = document.querySelector('.login-card');
+            loginCard.style.animation = 'shake 0.5s';
+            setTimeout(() => {
+                loginCard.style.animation = '';
+            }, 500);
+            
+            // Re-enable button
+            submitButton.disabled = false;
+            submitButton.textContent = 'Sign In';
+        }
+    } catch (error) {
+        console.error('Login error:', error);
+        errorMessage.textContent = 'Unable to connect to server. Please make sure the backend is running.';
         errorMessage.style.display = 'block';
         
-        // Shake animation for error
-        const loginCard = document.querySelector('.login-card');
-        loginCard.style.animation = 'shake 0.5s';
-        setTimeout(() => {
-            loginCard.style.animation = '';
-        }, 500);
+        // Re-enable button
+        submitButton.disabled = false;
+        submitButton.textContent = 'Sign In';
     }
 });
-
-// Validate user credentials
-function validateCredentials(username, password, userType) {
-    if (userType === 'admin') {
-        return username === CREDENTIALS.admin.username && 
-               password === CREDENTIALS.admin.password;
-    } else if (userType === 'general') {
-        return username === CREDENTIALS.general.username && 
-               password === CREDENTIALS.general.password;
-    }
-    return false;
-}
 
 // Redirect to appropriate dashboard
 function redirectToDashboard(userType) {
@@ -94,7 +114,7 @@ function redirectToDashboard(userType) {
     }
 }
 
-// Add shake animation
+// Add animations
 const style = document.createElement('style');
 style.textContent = `
     @keyframes shake {
@@ -114,14 +134,3 @@ document.head.appendChild(style);
 
 // Check for existing session on page load
 checkExistingSession();
-
-// IMPORTANT NOTE FOR PRODUCTION:
-// This demo uses localStorage and hardcoded credentials for demonstration purposes.
-// For a production app, you should:
-// 1. Use a secure backend API for authentication
-// 2. Implement proper password hashing (bcrypt, argon2)
-// 3. Use secure session tokens (JWT)
-// 4. Implement HTTPS
-// 5. Add rate limiting for login attempts
-// 6. Consider using OAuth or Auth0 for authentication
-// 7. Store sensitive data server-side, not in localStorage
