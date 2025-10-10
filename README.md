@@ -1,2 +1,0 @@
-# AuctusAPP
-Personal Website

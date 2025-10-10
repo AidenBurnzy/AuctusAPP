@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Auctus - Dashboard</title>
+    <link href="https://fonts.googleapis.com/css2?family=Raleway:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="css/styles.css">
+    <link rel="stylesheet" href="css/dashboard.css">
+    <link rel="stylesheet" href="css/animations.css">
+</head>
+<body>
+    <div class="animated-background"></div>
+
+    <nav class="sidebar">
+        <div class="sidebar-header">
+            <h2>AUCTUS</h2>
+            <p class="user-role">General Portal</p>
+        </div>
+        
+        <ul class="nav-menu">
+            <li class="nav-item active" data-section="overview">
+                <span class="nav-icon">📊</span>
+                <span>Overview</span>
+            </li>
+            <li class="nav-item" data-section="todos">
+                <span class="nav-icon">✓</span>
+                <span>To-Do List</span>
+            </li>
+            <li class="nav-item" data-section="clients">
+                <span class="nav-icon">👥</span>
+                <span>Client List</span>
+            </li>
+        </ul>
+
+        <div class="sidebar-footer">
+            <button id="logoutBtn" class="logout-btn">Sign Out</button>
+        </div>
+    </nav>
+
+    <main class="main-content">
+        <header class="dashboard-header">
+            <h1 id="sectionTitle">Dashboard Overview</h1>
+            <div class="header-actions">
+                <span class="user-greeting">Welcome, Team Member</span>
+            </div>
+        </header>
+
+        <div class="content-area">
+            <!-- Overview Section -->
+            <section id="overview-section" class="section-content active">
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <div class="stat-icon">👥</div>
+                        <div class="stat-info">
+                            <h3>Total Clients</h3>
+                            <p class="stat-number" id="totalClients">0</p>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon">✓</div>
+                        <div class="stat-info">
+                            <h3>Active Projects</h3>
+                            <p class="stat-number" id="activeProjects">0</p>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon">⏰</div>
+                        <div class="stat-info">
+                            <h3>My Tasks</h3>
+                            <p class="stat-number" id="myTasks">0</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="recent-activity">
+                    <h2>Recent Activity</h2>
+                    <div class="activity-list" id="activityList">
+                        <p class="empty-state">No recent activity</p>
+                    </div>
+                </div>
+            </section>
+
+            <!-- To-Do List Section -->
+            <section id="todos-section" class="section-content">
+                <div class="section-header">
+                    <h2>To-Do List</h2>
+                </div>
+
+                <div class="todo-container">
+                    <div class="todo-list" id="todoList">
+                        <p class="empty-state">No tasks assigned</p>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Client List Section -->
+            <section id="clients-section" class="section-content">
+                <div class="section-header">
+                    <h2>Client List</h2>
+                    <input type="text" id="clientSearch" class="search-input" placeholder="Search clients...">
+                </div>
+
+                <div class="clients-table">
+                    <table id="clientsTable">
+                        <thead>
+                            <tr>
+                                <th>Company Name</th>
+                                <th>Contact</th>
+                                <th>Email</th>
+                                <th>Website</th>
+                                <th>Status</th>
+                            </tr>
+                        </thead>
+                        <tbody id="clientsTableBody">
+                            <tr>
+                                <td colspan="5" class="empty-state">No clients found</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+        </div>
+    </main>
+
+    <script src="js/utils.js"></script>
+    <script src="js/general.js"></script>
+</body>
+</html>
