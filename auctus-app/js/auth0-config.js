@@ -1,13 +1,16 @@
 // Auth0 Configuration
 // Replace these with your actual Auth0 values
-window.AUTH0_DOMAIN = 'dev-xx542itzll5jbrnr.us.auth0.com';  // ← Paste your domain here
-window.AUTH0_CLIENT_ID = 'TVmGEBZEEZzPmlqBuF453lS7fhZmujfF';       // ← Paste your client ID here
-window.AUTH0_AUDIENCE = undefined; // We're skipping this for now
+window.AUTH0_DOMAIN = 'dev-xx542itzll5jbrnr.us.auth0.com';
+window.AUTH0_CLIENT_ID = 'TVmGEBZEEZzPmlqBuF453lS7fhZmujfF';
+window.AUTH0_AUDIENCE = undefined;
+
+// Hardcoded redirect URIs to match Auth0 configuration exactly
+window.AUTH0_REDIRECT_URI_LOGIN = 'https://auctusapp.netlify.app/login.html';
+window.AUTH0_REDIRECT_URI_SIGNUP = 'https://auctusapp.netlify.app/signup.html';
 
 // Load Auth0 SDK first, then initialize
 async function loadAuth0SDK() {
     return new Promise((resolve, reject) => {
-        // Check if Auth0 SDK is already loaded
         if (window.auth0) {
             resolve();
             return;
@@ -29,12 +32,10 @@ async function loadAuth0SDK() {
     });
 }
 
-// Initialize on page load
 document.addEventListener('DOMContentLoaded', async () => {
     try {
         await loadAuth0SDK();
         
-        // Now initialize Auth0 in auth.js
         if (typeof initializeAuth0 === 'function') {
             await initializeAuth0();
         }

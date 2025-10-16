@@ -22,7 +22,7 @@ async function initializeAuth0() {
         auth0Client = await window.auth0.createAuth0Client({
             domain: window.AUTH0_DOMAIN,
             clientId: window.AUTH0_CLIENT_ID,
-            redirect_uri: window.location.href.split('?')[0],
+            redirect_uri: 'https://auctusapp.netlify.app/signup.html',
             audience: window.AUTH0_AUDIENCE || undefined,
             useRefreshTokens: true,
             cacheLocation: 'localstorage'
