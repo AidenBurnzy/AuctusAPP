@@ -1,6 +1,8 @@
 // Auth0 Configuration
-// These values are injected by Netlify at build time or via environment variables
-// For local development, these should be set in your environment
+// Replace these with your actual Auth0 values
+window.AUTH0_DOMAIN = 'dev-xx542itzll5jbrnr.us.auth0.com';  // ← Paste your domain here
+window.AUTH0_CLIENT_ID = 'TVmGEBZEEZzPmlqBuF453lS7fhZmujfF';       // ← Paste your client ID here
+window.AUTH0_AUDIENCE = undefined; // We're skipping this for now
 
 // Load Auth0 SDK first, then initialize
 async function loadAuth0SDK() {
@@ -16,7 +18,6 @@ async function loadAuth0SDK() {
         script.async = true;
         
         script.onload = () => {
-            // Give it a moment to fully initialize
             setTimeout(resolve, 100);
         };
         
@@ -28,23 +29,10 @@ async function loadAuth0SDK() {
     });
 }
 
-// Initialize Auth0 configuration from meta tags or window variables
-function initializeAuth0Config() {
-    // Try to get from meta tags first (if injected by Netlify)
-    const domainMeta = document.querySelector('meta[name="auth0-domain"]');
-    const clientIdMeta = document.querySelector('meta[name="auth0-client-id"]');
-    const audienceMeta = document.querySelector('meta[name="auth0-audience"]');
-    
-    window.AUTH0_DOMAIN = domainMeta?.content || window.AUTH0_DOMAIN || 'YOUR_AUTH0_DOMAIN';
-    window.AUTH0_CLIENT_ID = clientIdMeta?.content || window.AUTH0_CLIENT_ID || 'YOUR_AUTH0_CLIENT_ID';
-    window.AUTH0_AUDIENCE = audienceMeta?.content || window.AUTH0_AUDIENCE || 'YOUR_AUTH0_API_IDENTIFIER';
-}
-
 // Initialize on page load
 document.addEventListener('DOMContentLoaded', async () => {
     try {
         await loadAuth0SDK();
-        initializeAuth0Config();
         
         // Now initialize Auth0 in auth.js
         if (typeof initializeAuth0 === 'function') {
