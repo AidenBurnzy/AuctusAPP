@@ -45,7 +45,8 @@
                 <p class="tagline">enter employee info/p>
             </div>
 
-            <form id="signupForm" class="login-form">
+
+            <div class="login-form">
                 <div class="form-row">
                     <div class="form-group">
                         <label for="firstName">First Name</label>
@@ -67,16 +68,6 @@
                     <input type="tel" id="phone" name="phone" placeholder="(555) 123-4567" required>
                 </div>
 
-                <div class="form-group">
-                    <label for="signupPassword">Password</label>
-                    <input type="password" id="signupPassword" name="password" required minlength="6">
-                </div>
-
-                <div class="form-group">
-                    <label for="confirmPassword">Confirm Password</label>
-                    <input type="password" id="confirmPassword" name="confirmPassword" required minlength="6">
-                </div>
-
                 <div class="employee-code-info">
                     <strong>Admin Code (Optional):</strong> Leave blank to sign up as an employee. Enter the admin code if you're an administrator.
                 </div>
@@ -86,11 +77,10 @@
                     <input type="text" id="adminCode" name="adminCode" placeholder="Leave blank for employee access">
                 </div>
 
-                <button type="submit" class="login-button">Create Account</button>
-
+                <button id="auth0-signup" type="button" class="login-button">Sign Up with Auth0</button>
                 <div id="errorMessage" class="error-message" style="display: none;"></div>
                 <div id="successMessage" class="error-message" style="display: none; background: rgba(40, 167, 69, 0.1); color: var(--success); border-left-color: var(--success);"></div>
-            </form>
+            </div>
 
             <div class="login-footer">
                 <p>Already have an account? <a href="login.html" style="color: var(--primary-orange); font-weight: 600;">Sign In</a></p>
@@ -99,6 +89,7 @@
         </div>
     </div>
 
+    <script src="js/auth0-config.js"></script>
     <script src="js/signup.js"></script>
 </body>
 </html>

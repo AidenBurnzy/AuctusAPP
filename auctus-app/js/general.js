@@ -1,9 +1,11 @@
 // Auctus General User Dashboard JavaScript
 
-// Check authentication
-const currentUser = checkAuth('general');
-if (currentUser) {
+// Check authentication (allow both 'user' and 'general' roles)
+const currentUser = checkAuth();
+if (currentUser && (currentUser.userRole === 'user' || currentUser.userRole === 'general')) {
     initializeDashboard();
+} else if (!currentUser) {
+    // checkAuth already redirects if not authenticated
 }
 
 function initializeDashboard() {

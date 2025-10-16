@@ -1,12 +1,10 @@
-// Utility functions shared across the app
-
 // Check authentication
 function checkAuth(requiredRole = null) {
     const isAuthenticated = localStorage.getItem('isAuthenticated');
     const userRole = localStorage.getItem('userRole');
     
     if (!isAuthenticated) {
-        window.location.href = 'index.html';
+        window.location.href = 'login.html';
         return false;
     }
     
@@ -19,12 +17,21 @@ function checkAuth(requiredRole = null) {
     return { isAuthenticated, userRole };
 }
 
-// Logout function
-function logout() {
-    localStorage.removeItem('isAuthenticated');
-    localStorage.removeItem('userRole');
-    localStorage.removeItem('username');
-    window.location.href = 'index.html';
+// Logout function (Auth0)
+async function logout() {
+    // Call the logout function from auth.js if available
+    if (typeof window.logout === 'function') {
+        await window.logout();
+    } else {
+        // Fallback if auth.js is not loaded
+        localStorage.removeItem('auth0_token');
+        localStorage.removeItem('isAuthenticated');
+        localStorage.removeItem('userRole');
+        localStorage.removeItem('currentUserId');
+        localStorage.removeItem('username');
+        localStorage.removeItem('userEmail');
+        window.location.href = 'index.html';
+    }
 }
 
 // Local Storage helpers

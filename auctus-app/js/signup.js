@@ -1,136 +1,210 @@
-// Auctus Signup System
+// Auctus Auth0 Signup System
 
-// Admin code (only admins should know this)
-const ADMIN_CODE = '2025AUCTUSADMIN';
+let auth0Client = null;
 
-document.addEventListener('DOMContentLoaded', function() {
-    const signupForm = document.getElementById('signupForm');
-    const errorMessage = document.getElementById('errorMessage');
-    const successMessage = document.getElementById('successMessage');
+// Initialize Auth0
+async function initializeAuth0() {
+    try {
+        auth0Client = await window.auth0.createAuth0Client({
+            domain: window.AUTH0_DOMAIN,
+            clientId: window.AUTH0_CLIENT_ID,
+            redirect_uri: window.location.origin,
+            audience: window.AUTH0_AUDIENCE || undefined,
+            useRefreshTokens: true,
+            cacheLocation: 'localstorage'
+        });
 
-    signupForm.addEventListener('submit', function(e) {
-        e.preventDefault();
+        // Set up signup button
+        const signupButton = document.getElementById('auth0-signup');
+        if (signupButton) {
+            signupButton.addEventListener('click', async () => {
+                await handleSignupFlow();
+            });
+        }
 
-        // Clear previous messages
-        errorMessage.style.display = 'none';
-        successMessage.style.display = 'none';
+        // Check if redirected back from Auth0
+        const query = window.location.search;
+        if (query.includes('code=') && query.includes('state=')) {
+            try {
+                await auth0Client.handleRedirectCallback();
+                window.history.replaceState({}, document.title, window.location.pathname);
+                
+                // After signup, user needs to complete profile info
+                await completeSignupProfile();
+            } catch (error) {
+                console.error('Error handling redirect:', error);
+                showError('Authentication failed. Please try again.');
+            }
+        }
+    } catch (error) {
+        console.error('Error initializing Auth0:', error);
+        showError('Failed to initialize signup. Please refresh the page.');
+    }
+}
 
-        // Get form values
-        const firstName = document.getElementById('firstName').value.trim();
-        const lastName = document.getElementById('lastName').value.trim();
-        const email = document.getElementById('signupEmail').value.trim().toLowerCase();
-        const phone = document.getElementById('phone').value.trim();
-        const password = document.getElementById('signupPassword').value;
-        const confirmPassword = document.getElementById('confirmPassword').value;
-        const adminCode = document.getElementById('adminCode').value.trim();
+// Handle signup flow
+async function handleSignupFlow() {
+    const firstName = document.getElementById('firstName').value.trim();
+    const lastName = document.getElementById('lastName').value.trim();
+    const email = document.getElementById('signupEmail').value.trim().toLowerCase();
+    const phone = document.getElementById('phone').value.trim();
+    const adminCode = document.getElementById('adminCode').value.trim();
 
-        // Validation
-        if (!firstName || !lastName || !email || !phone || !password || !confirmPassword) {
-            showError('Please fill in all required fields');
+    // Clear previous messages
+    document.getElementById('errorMessage').style.display = 'none';
+    document.getElementById('successMessage').style.display = 'none';
+
+    // Validation
+    if (!firstName || !lastName || !email || !phone) {
+        showError('Please fill in all required fields');
+        return;
+    }
+
+    // Email validation
+    if (!validateEmail(email)) {
+        showError('Please enter a valid email address');
+        return;
+    }
+
+    // Store profile info in sessionStorage to retrieve after Auth0 signup
+    sessionStorage.setItem('signupProfile', JSON.stringify({
+        firstName,
+        lastName,
+        email,
+        phone,
+        adminCode
+    }));
+
+    try {
+        // Redirect to Auth0 signup
+        await auth0Client.loginWithRedirect({
+            screen_hint: 'signup',
+            login_hint: email,
+            prompt: 'consent'
+        });
+    } catch (error) {
+        console.error('Error initiating signup:', error);
+        showError('Failed to start signup process. Please try again.');
+    }
+}
+
+// Complete signup profile after Auth0 authentication
+async function completeSignupProfile() {
+    try {
+        // Retrieve stored profile info
+        const profileData = sessionStorage.getItem('signupProfile');
+        if (!profileData) {
+            window.location.href = 'login.html';
             return;
         }
 
-        // Email validation
-        if (!validateEmail(email)) {
-            showError('Please enter a valid email address');
-            return;
+        const { firstName, lastName, email, phone, adminCode } = JSON.parse(profileData);
+        const user = await auth0Client.getUser();
+        const token = await auth0Client.getTokenSilently();
+
+        // Validate admin code if provided
+        let role = 'user';
+        if (adminCode) {
+            const adminResponse = await fetch('/.netlify/functions/admin', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                },
+                body: JSON.stringify({
+                    action: 'validate-admin-code',
+                    adminCode
+                })
+            });
+
+            if (adminResponse.ok) {
+                const adminData = await adminResponse.json();
+                if (adminData.valid) {
+                    role = 'admin';
+                }
+            }
         }
 
-        // Password validation
-        if (password.length < 6) {
-            showError('Password must be at least 6 characters long');
-            return;
+        // Create user in Neon database
+        const response = await fetch('/.netlify/functions/users', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}`
+            },
+            body: JSON.stringify({
+                auth0_id: user.sub,
+                email,
+                firstName,
+                lastName,
+                phone,
+                role,
+                picture: user.picture || null
+            })
+        });
+
+        if (!response.ok) {
+            throw new Error('Failed to create user profile');
         }
 
-        if (password !== confirmPassword) {
-            showError('Passwords do not match');
-            return;
-        }
-
-        // Check if user already exists
-        const users = getUsersFromStorage();
-        if (users.find(u => u.email === email)) {
-            showError('An account with this email already exists');
-            return;
-        }
-
-        // Determine user role based on admin code
-        // If admin code is correct = admin, otherwise = general (employee)
-        let userRole = 'general';
-        if (adminCode && adminCode === ADMIN_CODE) {
-            userRole = 'admin';
-        }
-
-        // Create new user
-        const newUser = {
-            id: generateId(),
-            firstName,
-            lastName,
-            email,
-            phone,
-            password, // In production, this should be hashed!
-            role: userRole,
-            createdAt: new Date().toISOString()
-        };
-
-        // Save user
-        users.push(newUser);
-        saveUsersToStorage(users);
+        // Clear sessionStorage
+        sessionStorage.removeItem('signupProfile');
 
         // Show success message
-        const roleText = userRole === 'admin' ? 'Admin' : 'Employee';
-        showSuccess(`Account created successfully as ${roleText}! Redirecting to login...`);
+        const roleText = role === 'admin' ? 'Admin' : 'Employee';
+        showSuccess(`Account created successfully as ${roleText}! Redirecting to dashboard...`);
 
-        // Clear form
-        signupForm.reset();
+        // Store authentication info
+        localStorage.setItem('auth0_token', token);
+        localStorage.setItem('isAuthenticated', 'true');
+        localStorage.setItem('userRole', role);
+        localStorage.setItem('currentUserId', user.sub);
+        localStorage.setItem('username', `${firstName} ${lastName}`);
+        localStorage.setItem('userEmail', email);
 
-        // Redirect to login after 2 seconds
+        // Add login animation
+        const signupCard = document.querySelector('.login-card');
+        if (signupCard) {
+            signupCard.style.animation = 'slideDown 0.5s ease-in forwards';
+        }
+
+        // Redirect after animation
         setTimeout(() => {
-            window.location.href = 'login.html';
-        }, 2000);
-    });
+            if (role === 'admin') {
+                window.location.href = 'admin-dashboard.html';
+            } else {
+                window.location.href = 'general-dashboard.html';
+            }
+        }, 1500);
+    } catch (error) {
+        console.error('Error completing signup:', error);
+        showError('Failed to complete signup. Please try again.');
+    }
+}
 
-    function showError(message) {
-        errorMessage.textContent = message;
-        errorMessage.style.display = 'block';
-        
+function showError(message) {
+    const errorElement = document.getElementById('errorMessage');
+    if (errorElement) {
+        errorElement.textContent = message;
+        errorElement.style.display = 'block';
+
         // Shake animation
         const card = document.querySelector('.login-card');
-        card.style.animation = 'shake 0.5s';
-        setTimeout(() => {
-            card.style.animation = '';
-        }, 500);
-    }
-
-    function showSuccess(message) {
-        successMessage.textContent = message;
-        successMessage.style.display = 'block';
-    }
-});
-
-// Get users from localStorage
-function getUsersFromStorage() {
-    try {
-        const users = localStorage.getItem('auctusUsers');
-        return users ? JSON.parse(users) : [];
-    } catch (error) {
-        console.error('Error reading users:', error);
-        return [];
+        if (card) {
+            card.style.animation = 'shake 0.5s';
+            setTimeout(() => {
+                card.style.animation = '';
+            }, 500);
+        }
     }
 }
 
-// Save users to localStorage
-function saveUsersToStorage(users) {
-    try {
-        localStorage.setItem('auctusUsers', JSON.stringify(users));
-    } catch (error) {
-        console.error('Error saving users:', error);
+function showSuccess(message) {
+    const successElement = document.getElementById('successMessage');
+    if (successElement) {
+        successElement.textContent = message;
+        successElement.style.display = 'block';
     }
-}
-
-// Generate unique ID
-function generateId() {
-    return Date.now().toString(36) + Math.random().toString(36).substr(2);
 }
 
 // Validate email
@@ -139,13 +213,23 @@ function validateEmail(email) {
     return re.test(email);
 }
 
-// Add shake animation
+// Initialize on page load
+document.addEventListener('DOMContentLoaded', initializeAuth0);
+
+// Add animations
 const style = document.createElement('style');
 style.textContent = `
     @keyframes shake {
         0%, 100% { transform: translateX(0); }
         25% { transform: translateX(-10px); }
         75% { transform: translateX(10px); }
+    }
+    
+    @keyframes slideDown {
+        to {
+            opacity: 0;
+            transform: translateY(50px) scale(0.9);
+        }
     }
 `;
 document.head.appendChild(style);
