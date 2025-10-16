@@ -1,5 +1,11 @@
 // Auctus Admin Dashboard JavaScript
 
+// n8n Webhook URLs
+const N8N_WEBHOOKS = {
+    getClients: 'https://aidenburns.app.n8n.cloud/webhook/auctus-clients',
+    createClient: 'https://aidenburns.app.n8n.cloud/webhook/auctus-clients-create'
+};
+
 // Check authentication
 const currentUser = checkAuth('admin');
 if (currentUser) {
@@ -270,7 +276,7 @@ function deleteTodo(todoId) {
     }
 }
 
-// Client List Management
+// Client List Management - USES N8N + NEON DATABASE
 function setupClientList() {
     const clientSearch = document.querySelector('#clients-section .search-input');
     
@@ -283,32 +289,52 @@ function setupClientList() {
     loadClients();
 }
 
-function loadClients() {
+async function loadClients() {
     const tableBody = document.getElementById('clientsTableBody');
-    const clients = getStorageData('auctusClients', []);
     
-    if (clients.length === 0) {
-        tableBody.innerHTML = '<tr><td colspan="6" class="empty-state">No clients found</td></tr>';
-        return;
+    try {
+        // Call n8n to get clients from Neon
+        const response = await fetch(N8N_WEBHOOKS.getClients);
+        const data = await response.json();
+        
+        // Extract clients array from response
+        let clients = data;
+        if (!Array.isArray(data) && data.clients) {
+            clients = data.clients;
+        }
+        
+        // Store in localStorage for other functions that still use it
+        saveStorageData('auctusClients', clients);
+        
+        if (!Array.isArray(clients) || clients.length === 0) {
+            tableBody.innerHTML = '<tr><td colspan="6" class="empty-state">No clients found</td></tr>';
+            return;
+        }
+        
+        tableBody.innerHTML = clients.map(client => `
+            <tr>
+                <td><strong>${client.companyName}</strong></td>
+                <td>${client.contactName}</td>
+                <td>${client.email}</td>
+                <td>${formatCurrency(client.monthlyFee)}</td>
+                <td><span class="status-badge ${client.status}">${client.status}</span></td>
+                <td>
+                    <button class="btn-secondary" onclick="viewClient('${client.id}')" style="padding: 6px 12px; font-size: 0.875rem;">
+                        View
+                    </button>
+                    <button class="btn-secondary" onclick="deleteClient('${client.id}')" style="padding: 6px 12px; font-size: 0.875rem; background: var(--danger); color: white; border: none; margin-left: 8px;">
+                        Delete
+                    </button>
+                </td>
+            </tr>
+        `).join('');
+        
+        // Update dashboard stats after loading clients
+        updateDashboardStats();
+    } catch (error) {
+        console.error('Error loading clients:', error);
+        tableBody.innerHTML = '<tr><td colspan="6" class="empty-state">Error loading clients. Make sure n8n workflow is active!</td></tr>';
     }
-    
-    tableBody.innerHTML = clients.map(client => `
-        <tr>
-            <td><strong>${client.companyName}</strong></td>
-            <td>${client.contactName}</td>
-            <td>${client.email}</td>
-            <td>${formatCurrency(client.monthlyFee)}</td>
-            <td><span class="status-badge ${client.status}">${client.status}</span></td>
-            <td>
-                <button class="btn-secondary" onclick="viewClient('${client.id}')" style="padding: 6px 12px; font-size: 0.875rem;">
-                    View
-                </button>
-                <button class="btn-secondary" onclick="deleteClient('${client.id}')" style="padding: 6px 12px; font-size: 0.875rem; background: var(--danger); color: white; border: none; margin-left: 8px;">
-                    Delete
-                </button>
-            </td>
-        </tr>
-    `).join('');
 }
 
 function viewClient(clientId) {
@@ -336,12 +362,16 @@ function deleteClient(clientId) {
     }
 }
 
-// Add New Client
+// Add New Client - CONNECTED TO NEON DATABASE VIA N8N
 function setupAddClient() {
     const form = document.getElementById('addClientForm');
     
-    form.addEventListener('submit', (e) => {
+    form.addEventListener('submit', async (e) => {
         e.preventDefault();
+        
+        const submitButton = form.querySelector('button[type="submit"]');
+        submitButton.disabled = true;
+        submitButton.textContent = 'Adding Client...';
         
         const newClient = {
             id: generateId(),
@@ -357,19 +387,40 @@ function setupAddClient() {
             createdAt: new Date().toISOString()
         };
         
-        const clients = getStorageData('auctusClients', []);
-        clients.push(newClient);
-        saveStorageData('auctusClients', clients);
-        
-        form.reset();
-        loadClients();
-        loadQuickBooksData();
-        updateDashboardStats();
-        showToast('Client added successfully!', 'success');
-        logActivity('New Client Added', `${newClient.companyName} joined Auctus`);
-        
-        // Switch to clients view
-        document.querySelector('[data-section="clients"]').click();
+        try {
+            // Send to n8n to save in Neon database
+            const response = await fetch(N8N_WEBHOOKS.createClient, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(newClient)
+            });
+            
+            if (!response.ok) {
+                throw new Error('Network response was not ok');
+            }
+            
+            const result = await response.json();
+            
+            if (result.success) {
+                form.reset();
+                await loadClients(); // Reload from database
+                loadQuickBooksData();
+                updateDashboardStats();
+                showToast('Client added successfully!', 'success');
+                logActivity('New Client Added', `${newClient.companyName} joined Auctus`);
+                
+                // Switch to clients view
+                document.querySelector('[data-section="clients"]').click();
+            } else {
+                showToast('Error adding client', 'error');
+            }
+        } catch (error) {
+            console.error('Error adding client:', error);
+            showToast('Error adding client. Make sure n8n workflow is active!', 'error');
+        } finally {
+            submitButton.disabled = false;
+            submitButton.textContent = 'Add Client';
+        }
     });
 }
 

@@ -1,4 +1,4 @@
-/* Auctus Animated Background */
+/* Auctus Enhanced Animated Background */
 
 .animated-background {
     position: fixed;
@@ -8,90 +8,55 @@
     height: 100%;
     z-index: 1;
     overflow: hidden;
-    background: linear-gradient(135deg, #FFE5D4 0%, #FFF5ED 50%, #FFE0CC 100%);
+    background: linear-gradient(135deg, #FFE8D8 0%, #FFF7F0 50%, #FFE3D1 100%);
 }
 
+/* Primary animated orbs */
 .animated-background::before,
 .animated-background::after {
     content: '';
     position: absolute;
     border-radius: 50%;
-    filter: blur(80px);
-    opacity: 0.6;
-    animation: float 20s ease-in-out infinite;
+    filter: blur(100px);
+    opacity: 0.5;
+    animation: float 25s ease-in-out infinite;
 }
 
 .animated-background::before {
-    width: 500px;
-    height: 500px;
-    background: radial-gradient(circle, #FF8C42, #FFB380);
-    top: -200px;
-    left: -200px;
+    width: 600px;
+    height: 600px;
+    background: radial-gradient(circle, rgba(255, 140, 66, 0.6), rgba(255, 179, 128, 0.4));
+    top: -250px;
+    left: -250px;
     animation-delay: 0s;
 }
 
 .animated-background::after {
-    width: 600px;
-    height: 600px;
-    background: radial-gradient(circle, #FF6B35, #FF8C42);
-    bottom: -250px;
-    right: -250px;
-    animation-delay: 3s;
-}
-
-/* Floating orbs */
-@keyframes float {
-    0%, 100% {
-        transform: translate(0, 0) scale(1);
-    }
-    25% {
-        transform: translate(50px, -80px) scale(1.1);
-    }
-    50% {
-        transform: translate(-30px, 50px) scale(0.9);
-    }
-    75% {
-        transform: translate(70px, 30px) scale(1.05);
-    }
-}
-
-/* Additional animated elements */
-.animated-background .orb {
-    position: absolute;
-    border-radius: 50%;
-    filter: blur(60px);
-    opacity: 0.4;
-    animation: float 15s ease-in-out infinite;
-}
-
-.animated-background .orb-1 {
-    width: 300px;
-    height: 300px;
-    background: radial-gradient(circle, #FFD700, #FFA500);
-    top: 20%;
-    right: 15%;
-    animation-delay: 2s;
-}
-
-.animated-background .orb-2 {
-    width: 400px;
-    height: 400px;
-    background: radial-gradient(circle, #FF6347, #FF8C42);
-    bottom: 30%;
-    left: 10%;
+    width: 700px;
+    height: 700px;
+    background: radial-gradient(circle, rgba(255, 107, 53, 0.5), rgba(255, 140, 66, 0.3));
+    bottom: -300px;
+    right: -300px;
     animation-delay: 5s;
 }
 
-.animated-background .orb-3 {
-    width: 250px;
-    height: 250px;
-    background: radial-gradient(circle, #FFA07A, #FFB380);
-    top: 50%;
-    left: 50%;
-    animation-delay: 7s;
+/* Floating animation with more natural movement */
+@keyframes float {
+    0%, 100% {
+        transform: translate(0, 0) scale(1) rotate(0deg);
+    }
+    25% {
+        transform: translate(80px, -100px) scale(1.1) rotate(5deg);
+    }
+    50% {
+        transform: translate(-50px, 80px) scale(0.9) rotate(-3deg);
+    }
+    75% {
+        transform: translate(100px, 50px) scale(1.05) rotate(8deg);
+    }
 }
 
-/* Mesh gradient effect */
+/* Mesh gradient overlay effect */
 .animated-background::after {
     content: '';
     position: absolute;
@@ -100,44 +65,48 @@
     width: 100%;
     height: 100%;
     background: 
-        radial-gradient(at 10% 30%, rgba(255, 140, 66, 0.3) 0px, transparent 50%),
-        radial-gradient(at 80% 50%, rgba(255, 107, 53, 0.3) 0px, transparent 50%),
-        radial-gradient(at 50% 80%, rgba(255, 179, 128, 0.3) 0px, transparent 50%),
-        radial-gradient(at 30% 60%, rgba(255, 165, 0, 0.2) 0px, transparent 50%);
-    animation: meshMove 25s ease-in-out infinite;
+        radial-gradient(at 15% 25%, rgba(255, 140, 66, 0.25) 0px, transparent 55%),
+        radial-gradient(at 85% 45%, rgba(255, 107, 53, 0.25) 0px, transparent 55%),
+        radial-gradient(at 45% 75%, rgba(255, 179, 128, 0.2) 0px, transparent 55%),
+        radial-gradient(at 25% 65%, rgba(255, 165, 0, 0.15) 0px, transparent 55%);
+    animation: meshMove 30s ease-in-out infinite;
+    mix-blend-mode: overlay;
 }
 
 @keyframes meshMove {
     0%, 100% {
         transform: scale(1) rotate(0deg);
+        opacity: 0.8;
     }
     33% {
-        transform: scale(1.1) rotate(5deg);
+        transform: scale(1.15) rotate(3deg);
+        opacity: 0.9;
     }
     66% {
-        transform: scale(0.95) rotate(-5deg);
+        transform: scale(0.95) rotate(-3deg);
+        opacity: 0.85;
     }
 }
 
-/* Pulse animation for interactive elements */
+/* Smooth pulse animation */
 @keyframes pulse {
     0%, 100% {
         opacity: 1;
         transform: scale(1);
     }
     50% {
-        opacity: 0.8;
-        transform: scale(1.05);
+        opacity: 0.85;
+        transform: scale(1.03);
     }
 }
 
-/* Shimmer effect */
+/* Shimmer effect for loading states */
 @keyframes shimmer {
     0% {
-        background-position: -1000px 0;
+        background-position: -1200px 0;
     }
     100% {
-        background-position: 1000px 0;
+        background-position: 1200px 0;
     }
 }
 
@@ -145,18 +114,18 @@
     background: linear-gradient(
         90deg,
         transparent 0%,
-        rgba(255, 255, 255, 0.5) 50%,
+        rgba(255, 255, 255, 0.6) 50%,
         transparent 100%
     );
-    background-size: 1000px 100%;
-    animation: shimmer 3s infinite;
+    background-size: 1200px 100%;
+    animation: shimmer 2.5s ease-in-out infinite;
 }
 
-/* Fade in animation */
+/* Smooth fade in from below */
 @keyframes fadeInUp {
     from {
         opacity: 0;
-        transform: translateY(30px);
+        transform: translateY(40px);
     }
     to {
         opacity: 1;
@@ -164,22 +133,173 @@
     }
 }
 
+/* Fade in from above */
+@keyframes fadeInDown {
+    from {
+        opacity: 0;
+        transform: translateY(-40px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* Scale in animation */
+@keyframes scaleIn {
+    from {
+        opacity: 0;
+        transform: scale(0.9);
+    }
+    to {
+        opacity: 1;
+        transform: scale(1);
+    }
+}
+
+/* Slide in from right */
+@keyframes slideInRight {
+    from {
+        opacity: 0;
+        transform: translateX(40px);
+    }
+    to {
+        opacity: 1;
+        transform: translateX(0);
+    }
+}
+
+/* Slide in from left */
+@keyframes slideInLeft {
+    from {
+        opacity: 0;
+        transform: translateX(-40px);
+    }
+    to {
+        opacity: 1;
+        transform: translateX(0);
+    }
+}
+
+/* Bounce subtle */
+@keyframes bounceSubtle {
+    0%, 100% {
+        transform: translateY(0);
+    }
+    50% {
+        transform: translateY(-10px);
+    }
+}
+
+/* Rotate subtle */
+@keyframes rotateSubtle {
+    0% {
+        transform: rotate(0deg);
+    }
+    100% {
+        transform: rotate(360deg);
+    }
+}
+
+/* Glow effect animation */
+@keyframes glow {
+    0%, 100% {
+        box-shadow: 0 0 20px rgba(255, 140, 66, 0.4);
+    }
+    50% {
+        box-shadow: 0 0 30px rgba(255, 140, 66, 0.6);
+    }
+}
+
+/* Progress bar animation */
+@keyframes progressBar {
+    from {
+        transform: translateX(-100%);
+    }
+    to {
+        transform: translateX(0);
+    }
+}
+
+/* Skeleton loading animation */
+@keyframes skeleton {
+    0% {
+        background-position: -200px 0;
+    }
+    100% {
+        background-position: calc(200px + 100%) 0;
+    }
+}
+
+.skeleton {
+    background: linear-gradient(
+        90deg,
+        #f0f0f0 0px,
+        #e0e0e0 40px,
+        #f0f0f0 80px
+    );
+    background-size: 200px 100%;
+    animation: skeleton 1.5s ease-in-out infinite;
+}
+
+/* Shake animation for errors */
+@keyframes shake {
+    0%, 100% {
+        transform: translateX(0);
+    }
+    25% {
+        transform: translateX(-12px);
+    }
+    75% {
+        transform: translateX(12px);
+    }
+}
+
+/* Spin animation */
+@keyframes spin {
+    from {
+        transform: rotate(0deg);
+    }
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+/* Heartbeat animation */
+@keyframes heartbeat {
+    0%, 100% {
+        transform: scale(1);
+    }
+    10%, 30% {
+        transform: scale(1.1);
+    }
+    20%, 40% {
+        transform: scale(1);
+    }
+}
+
 /* Responsive adjustments */
 @media (max-width: 768px) {
     .animated-background::before {
-        width: 300px;
-        height: 300px;
-    }
-    
-    .animated-background::after {
         width: 400px;
         height: 400px;
     }
     
-    .animated-background .orb-1,
-    .animated-background .orb-2,
-    .animated-background .orb-3 {
-        width: 200px;
-        height: 200px;
+    .animated-background::after {
+        width: 500px;
+        height: 500px;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .animated-background::before,
+    .animated-background::after {
+        animation: none;
+    }
+    
+    * {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
     }
 }
