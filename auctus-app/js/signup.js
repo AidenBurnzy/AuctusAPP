@@ -5,6 +5,20 @@ let auth0Client = null;
 // Initialize Auth0
 async function initializeAuth0() {
     try {
+        // Wait for Auth0 SDK to be available
+        if (!window.auth0) {
+            throw new Error('Auth0 SDK not loaded. Please refresh the page.');
+        }
+
+        // Check that configuration is set
+        if (!window.AUTH0_DOMAIN || window.AUTH0_DOMAIN === 'YOUR_AUTH0_DOMAIN') {
+            throw new Error('Auth0 configuration missing. Check environment variables: AUTH0_DOMAIN, AUTH0_CLIENT_ID');
+        }
+
+        if (!window.AUTH0_CLIENT_ID || window.AUTH0_CLIENT_ID === 'YOUR_AUTH0_CLIENT_ID') {
+            throw new Error('Auth0 Client ID not configured. Check AUTH0_CLIENT_ID environment variable.');
+        }
+
         auth0Client = await window.auth0.createAuth0Client({
             domain: window.AUTH0_DOMAIN,
             clientId: window.AUTH0_CLIENT_ID,
@@ -38,7 +52,10 @@ async function initializeAuth0() {
         }
     } catch (error) {
         console.error('Error initializing Auth0:', error);
-        showError('Failed to initialize signup. Please refresh the page.');
+        console.error('Auth0 Domain:', window.AUTH0_DOMAIN);
+        console.error('Auth0 Client ID:', window.AUTH0_CLIENT_ID);
+        console.error('Auth0 SDK loaded:', !!window.auth0);
+        showError(`Failed to initialize signup: ${error.message}`);
     }
 }
 
@@ -212,9 +229,6 @@ function validateEmail(email) {
     const re = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     return re.test(email);
 }
-
-// Initialize on page load
-document.addEventListener('DOMContentLoaded', initializeAuth0);
 
 // Add animations
 const style = document.createElement('style');
