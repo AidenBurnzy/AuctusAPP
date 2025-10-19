@@ -22,6 +22,18 @@ class StorageManager {
         if (!localStorage.getItem('auctus_finances')) {
             localStorage.setItem('auctus_finances', JSON.stringify([]));
         }
+        if (!localStorage.getItem('auctus_recurring_income')) {
+            localStorage.setItem('auctus_recurring_income', JSON.stringify([]));
+        }
+        if (!localStorage.getItem('auctus_subscriptions')) {
+            localStorage.setItem('auctus_subscriptions', JSON.stringify([]));
+        }
+        if (!localStorage.getItem('auctus_allocations')) {
+            localStorage.setItem('auctus_allocations', JSON.stringify([]));
+        }
+        if (!localStorage.getItem('auctus_employees')) {
+            localStorage.setItem('auctus_employees', JSON.stringify([]));
+        }
     }
 
     async apiRequest(endpoint, method = 'GET', data = null) {
@@ -360,6 +372,234 @@ class StorageManager {
         const finances = await this.getFinances();
         const filtered = finances.filter(f => f.id !== id);
         localStorage.setItem('auctus_finances', JSON.stringify(filtered));
+    }
+
+    // Recurring Income
+    async getRecurringIncome() {
+        if (this.USE_API) {
+            try {
+                const result = await this.apiRequest('recurring-income');
+                return Array.isArray(result) ? result : [];
+            } catch (error) {
+                return JSON.parse(localStorage.getItem('auctus_recurring_income') || '[]');
+            }
+        }
+        return JSON.parse(localStorage.getItem('auctus_recurring_income') || '[]');
+    }
+
+    async addRecurringIncome(income) {
+        if (this.USE_API) {
+            try {
+                return await this.apiRequest('recurring-income', 'POST', income);
+            } catch (error) {
+                // Fallback
+            }
+        }
+        const incomes = await this.getRecurringIncome();
+        income.id = Date.now().toString();
+        incomes.push(income);
+        localStorage.setItem('auctus_recurring_income', JSON.stringify(incomes));
+        return income;
+    }
+
+    async updateRecurringIncome(id, updatedIncome) {
+        if (this.USE_API) {
+            try {
+                return await this.apiRequest('recurring-income', 'PUT', { ...updatedIncome, id });
+            } catch (error) {
+                // Fallback
+            }
+        }
+        const incomes = await this.getRecurringIncome();
+        const index = incomes.findIndex(i => i.id === id);
+        if (index !== -1) {
+            incomes[index] = { ...incomes[index], ...updatedIncome };
+            localStorage.setItem('auctus_recurring_income', JSON.stringify(incomes));
+        }
+    }
+
+    async deleteRecurringIncome(id) {
+        if (this.USE_API) {
+            try {
+                return await this.apiRequest('recurring-income', 'DELETE', { id });
+            } catch (error) {
+                // Fallback
+            }
+        }
+        const incomes = await this.getRecurringIncome();
+        const filtered = incomes.filter(i => i.id !== id);
+        localStorage.setItem('auctus_recurring_income', JSON.stringify(filtered));
+    }
+
+    // Subscriptions
+    async getSubscriptions() {
+        if (this.USE_API) {
+            try {
+                const result = await this.apiRequest('subscriptions');
+                return Array.isArray(result) ? result : [];
+            } catch (error) {
+                return JSON.parse(localStorage.getItem('auctus_subscriptions') || '[]');
+            }
+        }
+        return JSON.parse(localStorage.getItem('auctus_subscriptions') || '[]');
+    }
+
+    async addSubscription(subscription) {
+        if (this.USE_API) {
+            try {
+                return await this.apiRequest('subscriptions', 'POST', subscription);
+            } catch (error) {
+                // Fallback
+            }
+        }
+        const subscriptions = await this.getSubscriptions();
+        subscription.id = Date.now().toString();
+        subscriptions.push(subscription);
+        localStorage.setItem('auctus_subscriptions', JSON.stringify(subscriptions));
+        return subscription;
+    }
+
+    async updateSubscription(id, updatedSubscription) {
+        if (this.USE_API) {
+            try {
+                return await this.apiRequest('subscriptions', 'PUT', { ...updatedSubscription, id });
+            } catch (error) {
+                // Fallback
+            }
+        }
+        const subscriptions = await this.getSubscriptions();
+        const index = subscriptions.findIndex(s => s.id === id);
+        if (index !== -1) {
+            subscriptions[index] = { ...subscriptions[index], ...updatedSubscription };
+            localStorage.setItem('auctus_subscriptions', JSON.stringify(subscriptions));
+        }
+    }
+
+    async deleteSubscription(id) {
+        if (this.USE_API) {
+            try {
+                return await this.apiRequest('subscriptions', 'DELETE', { id });
+            } catch (error) {
+                // Fallback
+            }
+        }
+        const subscriptions = await this.getSubscriptions();
+        const filtered = subscriptions.filter(s => s.id !== id);
+        localStorage.setItem('auctus_subscriptions', JSON.stringify(filtered));
+    }
+
+    // Budget Allocations
+    async getAllocations() {
+        if (this.USE_API) {
+            try {
+                const result = await this.apiRequest('allocations');
+                return Array.isArray(result) ? result : [];
+            } catch (error) {
+                return JSON.parse(localStorage.getItem('auctus_allocations') || '[]');
+            }
+        }
+        return JSON.parse(localStorage.getItem('auctus_allocations') || '[]');
+    }
+
+    async addAllocation(allocation) {
+        if (this.USE_API) {
+            try {
+                return await this.apiRequest('allocations', 'POST', allocation);
+            } catch (error) {
+                // Fallback
+            }
+        }
+        const allocations = await this.getAllocations();
+        allocation.id = Date.now().toString();
+        allocations.push(allocation);
+        localStorage.setItem('auctus_allocations', JSON.stringify(allocations));
+        return allocation;
+    }
+
+    async updateAllocation(id, updatedAllocation) {
+        if (this.USE_API) {
+            try {
+                return await this.apiRequest('allocations', 'PUT', { ...updatedAllocation, id });
+            } catch (error) {
+                // Fallback
+            }
+        }
+        const allocations = await this.getAllocations();
+        const index = allocations.findIndex(a => a.id === id);
+        if (index !== -1) {
+            allocations[index] = { ...allocations[index], ...updatedAllocation };
+            localStorage.setItem('auctus_allocations', JSON.stringify(allocations));
+        }
+    }
+
+    async deleteAllocation(id) {
+        if (this.USE_API) {
+            try {
+                return await this.apiRequest('allocations', 'DELETE', { id });
+            } catch (error) {
+                // Fallback
+            }
+        }
+        const allocations = await this.getAllocations();
+        const filtered = allocations.filter(a => a.id !== id);
+        localStorage.setItem('auctus_allocations', JSON.stringify(filtered));
+    }
+
+    // Employees
+    async getEmployees() {
+        if (this.USE_API) {
+            try {
+                const result = await this.apiRequest('employees');
+                return Array.isArray(result) ? result : [];
+            } catch (error) {
+                return JSON.parse(localStorage.getItem('auctus_employees') || '[]');
+            }
+        }
+        return JSON.parse(localStorage.getItem('auctus_employees') || '[]');
+    }
+
+    async addEmployee(employee) {
+        if (this.USE_API) {
+            try {
+                return await this.apiRequest('employees', 'POST', employee);
+            } catch (error) {
+                // Fallback
+            }
+        }
+        const employees = await this.getEmployees();
+        employee.id = Date.now().toString();
+        employees.push(employee);
+        localStorage.setItem('auctus_employees', JSON.stringify(employees));
+        return employee;
+    }
+
+    async updateEmployee(id, updatedEmployee) {
+        if (this.USE_API) {
+            try {
+                return await this.apiRequest('employees', 'PUT', { ...updatedEmployee, id });
+            } catch (error) {
+                // Fallback
+            }
+        }
+        const employees = await this.getEmployees();
+        const index = employees.findIndex(e => e.id === id);
+        if (index !== -1) {
+            employees[index] = { ...employees[index], ...updatedEmployee };
+            localStorage.setItem('auctus_employees', JSON.stringify(employees));
+        }
+    }
+
+    async deleteEmployee(id) {
+        if (this.USE_API) {
+            try {
+                return await this.apiRequest('employees', 'DELETE', { id });
+            } catch (error) {
+                // Fallback
+            }
+        }
+        const employees = await this.getEmployees();
+        const filtered = employees.filter(e => e.id !== id);
+        localStorage.setItem('auctus_employees', JSON.stringify(filtered));
     }
 }
 

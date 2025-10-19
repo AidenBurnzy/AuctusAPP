@@ -97,12 +97,58 @@ exports.handler = async () => {
       )
     `);
 
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS recurring_income (
+        id SERIAL PRIMARY KEY,
+        client_id INTEGER REFERENCES clients(id) ON DELETE CASCADE,
+        client_name VARCHAR(255) NOT NULL,
+        monthly_payment DECIMAL(10, 2) NOT NULL,
+        is_active BOOLEAN DEFAULT true,
+        created_at TIMESTAMP DEFAULT NOW(),
+        updated_at TIMESTAMP DEFAULT NOW()
+      )
+    `);
+
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS subscriptions (
+        id SERIAL PRIMARY KEY,
+        name VARCHAR(255) NOT NULL,
+        monthly_cost DECIMAL(10, 2) NOT NULL,
+        description TEXT,
+        is_active BOOLEAN DEFAULT true,
+        created_at TIMESTAMP DEFAULT NOW(),
+        updated_at TIMESTAMP DEFAULT NOW()
+      )
+    `);
+
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS budget_allocations (
+        id SERIAL PRIMARY KEY,
+        category VARCHAR(100) NOT NULL,
+        percentage DECIMAL(5, 2) NOT NULL,
+        description TEXT,
+        created_at TIMESTAMP DEFAULT NOW(),
+        updated_at TIMESTAMP DEFAULT NOW()
+      )
+    `);
+
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS employees (
+        id SERIAL PRIMARY KEY,
+        name VARCHAR(255) NOT NULL,
+        percentage DECIMAL(5, 2) NOT NULL,
+        is_active BOOLEAN DEFAULT true,
+        created_at TIMESTAMP DEFAULT NOW(),
+        updated_at TIMESTAMP DEFAULT NOW()
+      )
+    `);
+
     return {
       statusCode: 200,
       headers,
       body: JSON.stringify({ 
         message: 'Database initialized successfully',
-        tables: ['clients', 'projects', 'websites', 'ideas', 'finances']
+        tables: ['clients', 'projects', 'websites', 'ideas', 'finances', 'recurring_income', 'subscriptions', 'budget_allocations', 'employees']
       })
     };
   } catch (error) {

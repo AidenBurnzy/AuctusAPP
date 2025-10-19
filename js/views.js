@@ -226,89 +226,160 @@ class ViewManager {
     }
 
     async renderFinancesView() {
-        console.log('Rendering finances view...');
-        let finances = await window.storageManager.getFinances();
-        console.log('Finances fetched:', finances, 'Type:', typeof finances, 'Is Array:', Array.isArray(finances));
+        console.log('Rendering comprehensive finances view...');
         
-        // Safety check: ensure finances is always an array
-        if (!Array.isArray(finances)) {
-            console.error('Finances is not an array!', finances);
-            finances = [];
-        }
+        // Fetch all financial data
+        let recurringIncome = await window.storageManager.getRecurringIncome();
+        let subscriptions = await window.storageManager.getSubscriptions();
+        let allocations = await window.storageManager.getAllocations();
+        let employees = await window.storageManager.getEmployees();
+        
+        // Safety checks
+        recurringIncome = Array.isArray(recurringIncome) ? recurringIncome.filter(i => i.is_active !== false) : [];
+        subscriptions = Array.isArray(subscriptions) ? subscriptions.filter(s => s.is_active !== false) : [];
+        allocations = Array.isArray(allocations) ? allocations : [];
+        employees = Array.isArray(employees) ? employees.filter(e => e.is_active !== false) : [];
         
         // Calculate totals
-        const totals = finances.reduce((acc, f) => {
-            const amount = parseFloat(f.amount) || 0;
-            if (f.type === 'income') {
-                acc.income += amount;
-            } else if (f.type === 'expense') {
-                acc.expense += amount;
-            }
-            return acc;
-        }, { income: 0, expense: 0 });
+        const grossIncome = recurringIncome.reduce((sum, i) => sum + (parseFloat(i.monthly_payment) || 0), 0);
+        const subscriptionsCost = subscriptions.reduce((sum, s) => sum + (parseFloat(s.monthly_cost) || 0), 0);
+        const netIncome = grossIncome - subscriptionsCost;
         
-        const balance = totals.income - totals.expense;
+        // Calculate allocations
+        const allocationAmounts = allocations.map(a => ({
+            ...a,
+            amount: (netIncome * (parseFloat(a.percentage) || 0)) / 100
+        }));
+        
+        // Calculate employee income
+        const employeePayroll = employees.map(e => ({
+            ...e,
+            monthly: (netIncome * (parseFloat(e.percentage) || 0)) / 100,
+            yearly: ((netIncome * (parseFloat(e.percentage) || 0)) / 100) * 12
+        }));
         
         const container = document.getElementById('finances-view');
         
         container.innerHTML = `
             <div class="view-header">
-                <h2>Finances</h2>
-                <div class="finance-actions">
-                    <button class="add-btn" onclick="window.modalManager.openFinanceModal(null, 'income')" style="background: #4CAF50;">
-                        <i class="fas fa-arrow-up"></i> Add Income
-                    </button>
-                    <button class="add-btn" onclick="window.modalManager.openFinanceModal(null, 'expense')" style="background: #f44336;">
-                        <i class="fas fa-arrow-down"></i> Add Expense
-                    </button>
-                </div>
+                <h2><i class="fas fa-chart-line"></i> Financial Dashboard</h2>
             </div>
             
+            <!-- Summary Cards -->
             <div class="finance-summary">
                 <div class="summary-card" style="border-left: 4px solid #4CAF50;">
-                    <div class="summary-label">Total Income</div>
-                    <div class="summary-amount" style="color: #4CAF50;">$${totals.income.toFixed(2)}</div>
+                    <div class="summary-label">Gross Monthly Income</div>
+                    <div class="summary-amount" style="color: #4CAF50;">$${grossIncome.toFixed(2)}</div>
                 </div>
                 <div class="summary-card" style="border-left: 4px solid #f44336;">
-                    <div class="summary-label">Total Expenses</div>
-                    <div class="summary-amount" style="color: #f44336;">$${totals.expense.toFixed(2)}</div>
+                    <div class="summary-label">Subscriptions Cost</div>
+                    <div class="summary-amount" style="color: #f44336;">$${subscriptionsCost.toFixed(2)}</div>
                 </div>
-                <div class="summary-card" style="border-left: 4px solid ${balance >= 0 ? '#4CAF50' : '#f44336'};">
-                    <div class="summary-label">Balance</div>
-                    <div class="summary-amount" style="color: ${balance >= 0 ? '#4CAF50' : '#f44336'};">${balance >= 0 ? '+' : ''}$${balance.toFixed(2)}</div>
+                <div class="summary-card" style="border-left: 4px solid #6C63FF;">
+                    <div class="summary-label">Net Monthly Income</div>
+                    <div class="summary-amount" style="color: #6C63FF;">$${netIncome.toFixed(2)}</div>
                 </div>
             </div>
             
-            ${finances.length === 0 ? this.renderEmptyState('dollar-sign', 'No transactions yet', 'Track your first income or expense') : ''}
-            <div class="list-container">
-                ${finances.map(finance => this.renderFinanceCard(finance)).join('')}
-            </div>
-        `;
-    }
-
-    renderFinanceCard(finance) {
-        const amount = parseFloat(finance.amount) || 0;
-        const isIncome = finance.type === 'income';
-        const date = finance.transaction_date ? new Date(finance.transaction_date).toLocaleDateString() : 'No date';
-        
-        return `
-            <div class="list-item" onclick="window.modalManager.openFinanceModal('${finance.id}')">
-                <div class="item-header">
-                    <div>
-                        <div class="item-title">
-                            <i class="fas fa-arrow-${isIncome ? 'up' : 'down'}" style="color: ${isIncome ? '#4CAF50' : '#f44336'};"></i>
-                            ${finance.category}
-                        </div>
-                        <div class="item-subtitle">${finance.description || 'No description'}</div>
-                    </div>
-                    <div class="finance-amount" style="color: ${isIncome ? '#4CAF50' : '#f44336'};">
-                        ${isIncome ? '+' : '-'}$${amount.toFixed(2)}
-                    </div>
+            <!-- Recurring Income Section -->
+            <div class="finance-section">
+                <div class="section-header">
+                    <h3><i class="fas fa-hand-holding-usd"></i> Recurring Income</h3>
+                    <button class="add-btn-small" onclick="window.modalManager.openRecurringIncomeModal()">
+                        <i class="fas fa-plus"></i> Add Client Income
+                    </button>
                 </div>
-                <div class="item-meta">
-                    <span><i class="fas fa-calendar"></i> ${date}</span>
-                    ${finance.payment_method ? `<span><i class="fas fa-credit-card"></i> ${finance.payment_method}</span>` : ''}
-                    ${finance.status ? `<span class="item-status ${finance.status === 'completed' ? 'status-completed' : 'status-pending'}">${finance.status}</span>` : ''}
+                <div class="finance-table">
+                    <div class="table-header">
+                        <div class="table-col">Client Name</div>
+                        <div class="table-col text-right">Monthly Payment</div>
+                    </div>
+                    ${recurringIncome.length === 0 ? '<div class="empty-message">No recurring income yet</div>' : 
+                        recurringIncome.map(income => `
+                            <div class="table-row" onclick="window.modalManager.openRecurringIncomeModal('${income.id}')">
+                                <div class="table-col">${income.client_name}</div>
+                                <div class="table-col text-right" style="color: #4CAF50; font-weight: 600;">$${parseFloat(income.monthly_payment).toFixed(2)}</div>
+                            </div>
+                        `).join('')
+                    }
+                </div>
+            </div>
+            
+            <!-- Subscriptions Section -->
+            <div class="finance-section">
+                <div class="section-header">
+                    <h3><i class="fas fa-receipt"></i> Subscriptions</h3>
+                    <button class="add-btn-small" onclick="window.modalManager.openSubscriptionModal()">
+                        <i class="fas fa-plus"></i> Add Subscription
+                    </button>
+                </div>
+                <div class="finance-table">
+                    <div class="table-header">
+                        <div class="table-col">Subscription Name</div>
+                        <div class="table-col text-right">Monthly Cost</div>
+                    </div>
+                    ${subscriptions.length === 0 ? '<div class="empty-message">No subscriptions yet</div>' : 
+                        subscriptions.map(sub => `
+                            <div class="table-row" onclick="window.modalManager.openSubscriptionModal('${sub.id}')">
+                                <div class="table-col">${sub.name}</div>
+                                <div class="table-col text-right" style="color: #f44336; font-weight: 600;">$${parseFloat(sub.monthly_cost).toFixed(2)}</div>
+                            </div>
+                        `).join('')
+                    }
+                </div>
+            </div>
+            
+            <!-- Budget Allocation Section -->
+            <div class="finance-section">
+                <div class="section-header">
+                    <h3><i class="fas fa-chart-pie"></i> Budget Allocation</h3>
+                    <button class="add-btn-small" onclick="window.modalManager.openAllocationModal()">
+                        <i class="fas fa-plus"></i> Add Allocation
+                    </button>
+                </div>
+                <div class="finance-table">
+                    <div class="table-header">
+                        <div class="table-col">Allocation Category</div>
+                        <div class="table-col text-right">Percentage</div>
+                        <div class="table-col text-right">Allocated Amount</div>
+                    </div>
+                    ${allocationAmounts.length === 0 ? '<div class="empty-message">No allocations yet</div>' : 
+                        allocationAmounts.map(alloc => `
+                            <div class="table-row" onclick="window.modalManager.openAllocationModal('${alloc.id}')">
+                                <div class="table-col">${alloc.category}</div>
+                                <div class="table-col text-right">${parseFloat(alloc.percentage).toFixed(0)}%</div>
+                                <div class="table-col text-right" style="color: #6C63FF; font-weight: 600;">$${alloc.amount.toFixed(2)}</div>
+                            </div>
+                        `).join('')
+                    }
+                </div>
+            </div>
+            
+            <!-- Employees Section -->
+            <div class="finance-section">
+                <div class="section-header">
+                    <h3><i class="fas fa-users"></i> Employee Payroll</h3>
+                    <button class="add-btn-small" onclick="window.modalManager.openEmployeeModal()">
+                        <i class="fas fa-plus"></i> Add Employee
+                    </button>
+                </div>
+                <div class="finance-table">
+                    <div class="table-header">
+                        <div class="table-col">Employee Name</div>
+                        <div class="table-col text-right">Percentage</div>
+                        <div class="table-col text-right">Monthly Income</div>
+                        <div class="table-col text-right">Yearly Income</div>
+                    </div>
+                    ${employeePayroll.length === 0 ? '<div class="empty-message">No employees yet</div>' : 
+                        employeePayroll.map(emp => `
+                            <div class="table-row" onclick="window.modalManager.openEmployeeModal('${emp.id}')">
+                                <div class="table-col">${emp.name}</div>
+                                <div class="table-col text-right">${parseFloat(emp.percentage).toFixed(0)}%</div>
+                                <div class="table-col text-right" style="color: #4CAF50; font-weight: 600;">$${emp.monthly.toFixed(2)}</div>
+                                <div class="table-col text-right" style="color: #4CAF50; font-weight: 600;">$${emp.yearly.toFixed(2)}</div>
+                            </div>
+                        `).join('')
+                    }
                 </div>
             </div>
         `;

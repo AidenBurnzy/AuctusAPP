@@ -446,6 +446,292 @@ class ModalManager {
             await this.closeModal();
         }
     }
+
+    // Recurring Income Modal
+    async openRecurringIncomeModal(incomeId = null) {
+        const incomes = await window.storageManager.getRecurringIncome();
+        const clients = await window.storageManager.getClients();
+        const income = incomeId ? incomes.find(i => i.id == incomeId) : null;
+        const isEdit = !!income;
+
+        this.container.innerHTML = `
+            <div class="modal-overlay" onclick="if(event.target === this) window.modalManager.closeModal()">
+                <div class="modal">
+                    <div class="modal-header">
+                        <h3>${isEdit ? 'Edit' : 'Add'} Recurring Income</h3>
+                        <button class="close-btn" onclick="window.modalManager.closeModal()">
+                            <i class="fas fa-times"></i>
+                        </button>
+                    </div>
+                    <div class="modal-content">
+                        <form id="income-form">
+                            <div class="form-group">
+                                <label>Client *</label>
+                                <select class="form-select" name="client_id">
+                                    <option value="">Select or type new client</option>
+                                    ${clients.map(c => `<option value="${c.id}" ${income?.client_id == c.id ? 'selected' : ''}>${c.name}</option>`).join('')}
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label>Client Name * (or select above)</label>
+                                <input type="text" class="form-input" name="client_name" value="${income?.client_name || ''}" required>
+                            </div>
+                            <div class="form-group">
+                                <label>Monthly Payment *</label>
+                                <input type="number" class="form-input" name="monthly_payment" value="${income?.monthly_payment || ''}" step="0.01" min="0" placeholder="0.00" required>
+                            </div>
+                            <div class="form-group">
+                                <label style="display: flex; align-items: center; gap: 0.5rem;">
+                                    <input type="checkbox" name="is_active" ${income?.is_active !== false ? 'checked' : ''}>
+                                    Active
+                                </label>
+                            </div>
+                            <div class="form-actions">
+                                ${isEdit ? `<button type="button" class="btn btn-danger" onclick="window.modalManager.deleteRecurringIncome('${income.id}')">Delete</button>` : ''}
+                                <button type="submit" class="btn btn-primary">${isEdit ? 'Update' : 'Add'}</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        `;
+
+        // Auto-fill client name when client is selected
+        const clientSelect = document.querySelector('select[name="client_id"]');
+        const clientNameInput = document.querySelector('input[name="client_name"]');
+        clientSelect.addEventListener('change', () => {
+            const selectedClient = clients.find(c => c.id == clientSelect.value);
+            if (selectedClient) {
+                clientNameInput.value = selectedClient.name;
+            }
+        });
+
+        document.getElementById('income-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const formData = new FormData(e.target);
+            const incomeData = {
+                client_id: formData.get('client_id') || null,
+                client_name: formData.get('client_name'),
+                monthly_payment: parseFloat(formData.get('monthly_payment')),
+                is_active: formData.get('is_active') === 'on'
+            };
+
+            if (isEdit) {
+                await window.storageManager.updateRecurringIncome(income.id, incomeData);
+            } else {
+                await window.storageManager.addRecurringIncome(incomeData);
+            }
+            await this.closeModal();
+        });
+    }
+
+    async deleteRecurringIncome(id) {
+        if (confirm('Are you sure you want to delete this recurring income?')) {
+            await window.storageManager.deleteRecurringIncome(id);
+            await this.closeModal();
+        }
+    }
+
+    // Subscription Modal
+    async openSubscriptionModal(subId = null) {
+        const subscriptions = await window.storageManager.getSubscriptions();
+        const subscription = subId ? subscriptions.find(s => s.id == subId) : null;
+        const isEdit = !!subscription;
+
+        this.container.innerHTML = `
+            <div class="modal-overlay" onclick="if(event.target === this) window.modalManager.closeModal()">
+                <div class="modal">
+                    <div class="modal-header">
+                        <h3>${isEdit ? 'Edit' : 'Add'} Subscription</h3>
+                        <button class="close-btn" onclick="window.modalManager.closeModal()">
+                            <i class="fas fa-times"></i>
+                        </button>
+                    </div>
+                    <div class="modal-content">
+                        <form id="subscription-form">
+                            <div class="form-group">
+                                <label>Subscription Name *</label>
+                                <input type="text" class="form-input" name="name" value="${subscription?.name || ''}" placeholder="e.g., Claude, Neon, Github" required>
+                            </div>
+                            <div class="form-group">
+                                <label>Monthly Cost *</label>
+                                <input type="number" class="form-input" name="monthly_cost" value="${subscription?.monthly_cost || ''}" step="0.01" min="0" placeholder="0.00" required>
+                            </div>
+                            <div class="form-group">
+                                <label>Description</label>
+                                <textarea class="form-textarea" name="description" rows="2" placeholder="Optional notes">${subscription?.description || ''}</textarea>
+                            </div>
+                            <div class="form-group">
+                                <label style="display: flex; align-items: center; gap: 0.5rem;">
+                                    <input type="checkbox" name="is_active" ${subscription?.is_active !== false ? 'checked' : ''}>
+                                    Active
+                                </label>
+                            </div>
+                            <div class="form-actions">
+                                ${isEdit ? `<button type="button" class="btn btn-danger" onclick="window.modalManager.deleteSubscription('${subscription.id}')">Delete</button>` : ''}
+                                <button type="submit" class="btn btn-primary">${isEdit ? 'Update' : 'Add'}</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        `;
+
+        document.getElementById('subscription-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const formData = new FormData(e.target);
+            const subscriptionData = {
+                name: formData.get('name'),
+                monthly_cost: parseFloat(formData.get('monthly_cost')),
+                description: formData.get('description'),
+                is_active: formData.get('is_active') === 'on'
+            };
+
+            if (isEdit) {
+                await window.storageManager.updateSubscription(subscription.id, subscriptionData);
+            } else {
+                await window.storageManager.addSubscription(subscriptionData);
+            }
+            await this.closeModal();
+        });
+    }
+
+    async deleteSubscription(id) {
+        if (confirm('Are you sure you want to delete this subscription?')) {
+            await window.storageManager.deleteSubscription(id);
+            await this.closeModal();
+        }
+    }
+
+    // Budget Allocation Modal
+    async openAllocationModal(allocId = null) {
+        const allocations = await window.storageManager.getAllocations();
+        const allocation = allocId ? allocations.find(a => a.id == allocId) : null;
+        const isEdit = !!allocation;
+
+        this.container.innerHTML = `
+            <div class="modal-overlay" onclick="if(event.target === this) window.modalManager.closeModal()">
+                <div class="modal">
+                    <div class="modal-header">
+                        <h3>${isEdit ? 'Edit' : 'Add'} Budget Allocation</h3>
+                        <button class="close-btn" onclick="window.modalManager.closeModal()">
+                            <i class="fas fa-times"></i>
+                        </button>
+                    </div>
+                    <div class="modal-content">
+                        <form id="allocation-form">
+                            <div class="form-group">
+                                <label>Allocation Category *</label>
+                                <input type="text" class="form-input" name="category" value="${allocation?.category || ''}" placeholder="e.g., To Savings, To Checking, To Employees" required>
+                            </div>
+                            <div class="form-group">
+                                <label>Percentage *</label>
+                                <input type="number" class="form-input" name="percentage" value="${allocation?.percentage || ''}" step="1" min="0" max="100" placeholder="35" required>
+                            </div>
+                            <div class="form-group">
+                                <label>Description</label>
+                                <textarea class="form-textarea" name="description" rows="2" placeholder="Optional notes">${allocation?.description || ''}</textarea>
+                            </div>
+                            <div class="form-actions">
+                                ${isEdit ? `<button type="button" class="btn btn-danger" onclick="window.modalManager.deleteAllocation('${allocation.id}')">Delete</button>` : ''}
+                                <button type="submit" class="btn btn-primary">${isEdit ? 'Update' : 'Add'}</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        `;
+
+        document.getElementById('allocation-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const formData = new FormData(e.target);
+            const allocationData = {
+                category: formData.get('category'),
+                percentage: parseFloat(formData.get('percentage')),
+                description: formData.get('description')
+            };
+
+            if (isEdit) {
+                await window.storageManager.updateAllocation(allocation.id, allocationData);
+            } else {
+                await window.storageManager.addAllocation(allocationData);
+            }
+            await this.closeModal();
+        });
+    }
+
+    async deleteAllocation(id) {
+        if (confirm('Are you sure you want to delete this allocation?')) {
+            await window.storageManager.deleteAllocation(id);
+            await this.closeModal();
+        }
+    }
+
+    // Employee Modal
+    async openEmployeeModal(empId = null) {
+        const employees = await window.storageManager.getEmployees();
+        const employee = empId ? employees.find(e => e.id == empId) : null;
+        const isEdit = !!employee;
+
+        this.container.innerHTML = `
+            <div class="modal-overlay" onclick="if(event.target === this) window.modalManager.closeModal()">
+                <div class="modal">
+                    <div class="modal-header">
+                        <h3>${isEdit ? 'Edit' : 'Add'} Employee</h3>
+                        <button class="close-btn" onclick="window.modalManager.closeModal()">
+                            <i class="fas fa-times"></i>
+                        </button>
+                    </div>
+                    <div class="modal-content">
+                        <form id="employee-form">
+                            <div class="form-group">
+                                <label>Employee Name *</label>
+                                <input type="text" class="form-input" name="name" value="${employee?.name || ''}" placeholder="e.g., Aiden, Nick" required>
+                            </div>
+                            <div class="form-group">
+                                <label>Income Percentage *</label>
+                                <input type="number" class="form-input" name="percentage" value="${employee?.percentage || ''}" step="1" min="0" max="100" placeholder="60" required>
+                            </div>
+                            <div class="form-group">
+                                <label style="display: flex; align-items: center; gap: 0.5rem;">
+                                    <input type="checkbox" name="is_active" ${employee?.is_active !== false ? 'checked' : ''}>
+                                    Active
+                                </label>
+                            </div>
+                            <div class="form-actions">
+                                ${isEdit ? `<button type="button" class="btn btn-danger" onclick="window.modalManager.deleteEmployee('${employee.id}')">Delete</button>` : ''}
+                                <button type="submit" class="btn btn-primary">${isEdit ? 'Update' : 'Add'}</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        `;
+
+        document.getElementById('employee-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const formData = new FormData(e.target);
+            const employeeData = {
+                name: formData.get('name'),
+                percentage: parseFloat(formData.get('percentage')),
+                is_active: formData.get('is_active') === 'on'
+            };
+
+            if (isEdit) {
+                await window.storageManager.updateEmployee(employee.id, employeeData);
+            } else {
+                await window.storageManager.addEmployee(employeeData);
+            }
+            await this.closeModal();
+        });
+    }
+
+    async deleteEmployee(id) {
+        if (confirm('Are you sure you want to delete this employee?')) {
+            await window.storageManager.deleteEmployee(id);
+            await this.closeModal();
+        }
+    }
 }
 
 // Initialize modal manager
