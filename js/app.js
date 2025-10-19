@@ -16,6 +16,11 @@ class AuctusApp {
     }
 
     setupEventListeners() {
+        // Logo home button
+        document.getElementById('logo-home').addEventListener('click', () => {
+            this.switchView('dashboard');
+        });
+
         // Navigation buttons
         document.querySelectorAll('.nav-btn').forEach(btn => {
             btn.addEventListener('click', (e) => {
@@ -43,7 +48,12 @@ class AuctusApp {
         document.querySelectorAll('.nav-btn').forEach(btn => {
             btn.classList.remove('active');
         });
-        document.querySelector(`[data-view="${viewName}"]`).classList.add('active');
+        
+        // Only update nav button if it exists (settings doesn't have a nav button)
+        const navBtn = document.querySelector(`[data-view="${viewName}"]`);
+        if (navBtn) {
+            navBtn.classList.add('active');
+        }
 
         // Update views
         document.querySelectorAll('.view').forEach(view => {
