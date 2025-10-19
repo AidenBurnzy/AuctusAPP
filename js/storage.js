@@ -57,7 +57,8 @@ class StorageManager {
             try {
                 const result = await this.apiRequest('clients');
                 console.log('API returned clients:', result);
-                return result;
+                // Ensure we always return an array
+                return Array.isArray(result) ? result : [];
             } catch (error) {
                 console.error('API failed, using localStorage:', error);
                 return JSON.parse(localStorage.getItem('auctus_clients') || '[]');
@@ -116,7 +117,8 @@ class StorageManager {
     async getProjects() {
         if (this.USE_API) {
             try {
-                return await this.apiRequest('projects');
+                const result = await this.apiRequest('projects');
+                return Array.isArray(result) ? result : [];
             } catch (error) {
                 return JSON.parse(localStorage.getItem('auctus_projects') || '[]');
             }
@@ -173,7 +175,8 @@ class StorageManager {
     async getWebsites() {
         if (this.USE_API) {
             try {
-                return await this.apiRequest('websites');
+                const result = await this.apiRequest('websites');
+                return Array.isArray(result) ? result : [];
             } catch (error) {
                 return JSON.parse(localStorage.getItem('auctus_websites') || '[]');
             }
@@ -230,7 +233,8 @@ class StorageManager {
     async getIdeas() {
         if (this.USE_API) {
             try {
-                return await this.apiRequest('ideas');
+                const result = await this.apiRequest('ideas');
+                return Array.isArray(result) ? result : [];
             } catch (error) {
                 return JSON.parse(localStorage.getItem('auctus_ideas') || '[]');
             }

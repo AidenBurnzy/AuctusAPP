@@ -92,16 +92,22 @@ class AuctusApp {
     }
 
     async updateStats() {
-        const clients = await window.storageManager.getClients();
-        const projects = await window.storageManager.getProjects();
-        const websites = await window.storageManager.getWebsites();
-        const ideas = await window.storageManager.getIdeas();
+        try {
+            const clients = await window.storageManager.getClients();
+            const projects = await window.storageManager.getProjects();
+            const websites = await window.storageManager.getWebsites();
+            const ideas = await window.storageManager.getIdeas();
 
-        document.getElementById('total-clients').textContent = clients.length;
-        document.getElementById('active-projects').textContent = 
-            projects.filter(p => p.status === 'active').length;
-        document.getElementById('total-websites').textContent = websites.length;
-        document.getElementById('total-ideas').textContent = ideas.length;
+            console.log('Stats data:', { clients, projects, websites, ideas });
+
+            document.getElementById('total-clients').textContent = Array.isArray(clients) ? clients.length : 0;
+            document.getElementById('active-projects').textContent = 
+                Array.isArray(projects) ? projects.filter(p => p.status === 'active').length : 0;
+            document.getElementById('total-websites').textContent = Array.isArray(websites) ? websites.length : 0;
+            document.getElementById('total-ideas').textContent = Array.isArray(ideas) ? ideas.length : 0;
+        } catch (error) {
+            console.error('Error updating stats:', error);
+        }
     }
 }
 
