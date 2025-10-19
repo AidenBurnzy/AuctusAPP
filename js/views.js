@@ -2,8 +2,15 @@
 class ViewManager {
     async renderClientsView() {
         console.log('Rendering clients view...');
-        const clients = await window.storageManager.getClients();
-        console.log('Clients fetched:', clients);
+        let clients = await window.storageManager.getClients();
+        console.log('Clients fetched:', clients, 'Type:', typeof clients, 'Is Array:', Array.isArray(clients));
+        
+        // Safety check: ensure clients is always an array
+        if (!Array.isArray(clients)) {
+            console.error('Clients is not an array!', clients);
+            clients = [];
+        }
+        
         const container = document.getElementById('clients-view');
         
         container.innerHTML = `
@@ -47,8 +54,19 @@ class ViewManager {
     }
 
     async renderProjectsView() {
-        const projects = await window.storageManager.getProjects();
-        const clients = await window.storageManager.getClients();
+        let projects = await window.storageManager.getProjects();
+        let clients = await window.storageManager.getClients();
+        
+        // Safety checks
+        if (!Array.isArray(projects)) {
+            console.error('Projects is not an array!', projects);
+            projects = [];
+        }
+        if (!Array.isArray(clients)) {
+            console.error('Clients is not an array!', clients);
+            clients = [];
+        }
+        
         const container = document.getElementById('projects-view');
         
         container.innerHTML = `
@@ -98,7 +116,14 @@ class ViewManager {
     }
 
     async renderWebsitesView() {
-        const websites = await window.storageManager.getWebsites();
+        let websites = await window.storageManager.getWebsites();
+        
+        // Safety check
+        if (!Array.isArray(websites)) {
+            console.error('Websites is not an array!', websites);
+            websites = [];
+        }
+        
         const container = document.getElementById('websites-view');
         
         container.innerHTML = `
@@ -146,7 +171,14 @@ class ViewManager {
     }
 
     async renderIdeasView() {
-        const ideas = await window.storageManager.getIdeas();
+        let ideas = await window.storageManager.getIdeas();
+        
+        // Safety check
+        if (!Array.isArray(ideas)) {
+            console.error('Ideas is not an array!', ideas);
+            ideas = [];
+        }
+        
         const container = document.getElementById('ideas-view');
         
         container.innerHTML = `
