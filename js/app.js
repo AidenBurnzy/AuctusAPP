@@ -63,6 +63,17 @@ class AuctusApp {
         document.getElementById('admin-password').value = '';
         document.getElementById('password-error').style.display = 'none';
         
+        // Setup form listener
+        const loginForm = document.getElementById('admin-login-form');
+        if (loginForm && !loginForm.hasAttribute('data-listener')) {
+            loginForm.addEventListener('submit', (e) => {
+                e.preventDefault();
+                const password = document.getElementById('admin-password').value;
+                this.checkAdminPassword(password);
+            });
+            loginForm.setAttribute('data-listener', 'true');
+        }
+        
         // Focus password input
         setTimeout(() => {
             document.getElementById('admin-password').focus();
@@ -157,17 +168,6 @@ class AuctusApp {
                 this.logout();
             });
             logoutBtn.setAttribute('data-listener', 'true');
-        }
-
-        // Admin login form
-        const loginForm = document.getElementById('admin-login-form');
-        if (loginForm && !loginForm.hasAttribute('data-listener')) {
-            loginForm.addEventListener('submit', (e) => {
-                e.preventDefault();
-                const password = document.getElementById('admin-password').value;
-                this.checkAdminPassword(password);
-            });
-            loginForm.setAttribute('data-listener', 'true');
         }
 
         // Navigation buttons
