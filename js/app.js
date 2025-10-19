@@ -37,6 +37,24 @@ class AuctusApp {
         document.getElementById('role-selection').style.display = 'flex';
         document.getElementById('app').style.display = 'none';
         document.getElementById('employee-portal').style.display = 'none';
+        
+        // Setup role selection buttons
+        const adminBtn = document.getElementById('admin-access-btn');
+        const employeeBtn = document.getElementById('employee-access-btn');
+        
+        if (adminBtn && !adminBtn.hasAttribute('data-listener')) {
+            adminBtn.addEventListener('click', () => {
+                this.showAdminLogin();
+            });
+            adminBtn.setAttribute('data-listener', 'true');
+        }
+        
+        if (employeeBtn && !employeeBtn.hasAttribute('data-listener')) {
+            employeeBtn.addEventListener('click', () => {
+                this.enterEmployeeMode();
+            });
+            employeeBtn.setAttribute('data-listener', 'true');
+        }
     }
 
     showAdminLogin() {

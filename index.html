@@ -11,7 +11,7 @@
     <title>Auctus Ventures</title>
     <link rel="manifest" href="manifest.json">
     <link rel="apple-touch-icon" href="icons/icon-192.png">
-    <link rel="stylesheet" href="css/styles.css?v=20251019-13">
+    <link rel="stylesheet" href="css/styles.css?v=20251019-14">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 </head>
 <body>
@@ -38,7 +38,7 @@
                     </div>
                     <h2>Admin / Owner</h2>
                     <p>Full access to business management, finances, and settings</p>
-                    <button class="role-btn" onclick="window.app.showAdminLogin()">
+                    <button class="role-btn" id="admin-access-btn">
                         <i class="fas fa-lock"></i> Access Admin Panel
                     </button>
                 </div>
@@ -49,7 +49,7 @@
                     </div>
                     <h2>Employee</h2>
                     <p>View your schedule, tasks, and payroll information</p>
-                    <button class="role-btn" onclick="window.app.enterEmployeeMode()">
+                    <button class="role-btn" id="employee-access-btn">
                         <i class="fas fa-arrow-right"></i> Employee Portal
                     </button>
                 </div>
@@ -214,7 +214,7 @@
     </div>
 
     <!-- Employee Portal -->
-    <div id="employee-portal" style="display: none;">
+    <div id="employee-portal" style="display: none; flex-direction: column; height: 100vh;">
         <header class="app-header">
             <h1 class="logo">Auctus Ventures</h1>
             <div class="header-actions">
@@ -225,7 +225,7 @@
             </div>
         </header>
 
-        <main class="main-content">
+        <main class="main-content" style="flex: 1; overflow-y: auto;">
             <div class="view active">
                 <div class="view-header">
                     <h2><i class="fas fa-user"></i> Employee Portal</h2>
@@ -251,10 +251,10 @@
     <div id="modal-container"></div>
 
     <!-- Scripts -->
-    <script src="js/storage.js?v=20251019-13"></script>
-    <script src="js/views.js?v=20251019-13"></script>
-    <script src="js/modals.js?v=20251019-13"></script>
-    <script src="js/app.js?v=20251019-13"></script>
+    <script src="js/storage.js?v=20251019-14"></script>
+    <script src="js/views.js?v=20251019-14"></script>
+    <script src="js/modals.js?v=20251019-14"></script>
+    <script src="js/app.js?v=20251019-14"></script>
     
     <!-- Service Worker Registration -->
     <script>

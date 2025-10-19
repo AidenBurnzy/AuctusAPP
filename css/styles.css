@@ -1060,6 +1060,126 @@ body {
     font-size: 1.25rem;
 }
 
+/* Admin Login Modal - Centered Overlay */
+#admin-login-modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.8);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 10000;
+    padding: 1rem;
+}
+
+#admin-login-modal .modal-content {
+    background: var(--card-bg);
+    border-radius: 20px;
+    width: 100%;
+    max-width: 400px;
+    animation: modalFadeIn 0.3s ease-out;
+}
+
+@keyframes modalFadeIn {
+    from {
+        opacity: 0;
+        transform: scale(0.9);
+    }
+    to {
+        opacity: 1;
+        transform: scale(1);
+    }
+}
+
+#admin-login-modal .modal-header {
+    padding: 1.5rem;
+    border-bottom: 1px solid var(--border-color);
+}
+
+#admin-login-modal .modal-header h3 {
+    margin: 0;
+    color: var(--text-primary);
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+#admin-login-modal .modal-body {
+    padding: 1.5rem;
+}
+
+#admin-login-modal .form-group {
+    margin-bottom: 1.5rem;
+}
+
+#admin-login-modal .form-group label {
+    display: block;
+    margin-bottom: 0.5rem;
+    color: var(--text-secondary);
+    font-size: 0.875rem;
+}
+
+#admin-login-modal .form-input {
+    width: 100%;
+    padding: 0.875rem;
+    background: var(--dark-bg);
+    border: 1px solid var(--border-color);
+    border-radius: 10px;
+    color: var(--text-primary);
+    font-size: 1rem;
+}
+
+#admin-login-modal .form-input:focus {
+    outline: none;
+    border-color: var(--primary-color);
+}
+
+#admin-login-modal .form-actions {
+    display: flex;
+    gap: 1rem;
+    margin-top: 1.5rem;
+}
+
+#admin-login-modal .btn {
+    flex: 1;
+    padding: 0.875rem;
+    border-radius: 10px;
+    font-size: 1rem;
+    font-weight: 600;
+    cursor: pointer;
+    border: none;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    transition: all 0.2s;
+}
+
+#admin-login-modal .btn-primary {
+    background: var(--primary-color);
+    color: white;
+}
+
+#admin-login-modal .btn-primary:hover {
+    background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(108, 99, 255, 0.4);
+}
+
+#admin-login-modal .btn-secondary {
+    background: rgba(108, 99, 255, 0.1);
+    color: var(--primary-color);
+    border: 1px solid var(--primary-color);
+}
+
+#admin-login-modal .btn-secondary:hover {
+    background: var(--primary-color);
+    color: white;
+}
+
 /* Responsive adjustments */
 @media (max-width: 768px) {
     .role-header h1 {
