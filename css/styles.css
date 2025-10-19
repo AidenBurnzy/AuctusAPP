@@ -231,6 +231,10 @@ body {
     font-size: 0.85rem;
 }
 
+.stat-card-full {
+    grid-column: 1 / -1;
+}
+
 /* Quick Actions */
 .quick-actions {
     margin-top: 2rem;
