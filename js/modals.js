@@ -87,7 +87,7 @@ class ModalManager {
 
     async openProjectModal(projectId = null) {
         const projects = await window.storageManager.getProjects();
-        const project = projectId ? projects.find(p => p.id === projectId) : null;
+        const project = projectId ? projects.find(p => p.id == projectId) : null;
         const clients = await window.storageManager.getClients();
         const isEdit = !!project;
 
