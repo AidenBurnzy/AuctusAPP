@@ -106,20 +106,27 @@ class AuctusApp {
             const projects = await window.storageManager.getProjects();
             const websites = await window.storageManager.getWebsites();
             const ideas = await window.storageManager.getIdeas();
-            const finances = await window.storageManager.getFinances();
+            
+            // Get financial data for balance calculation
+            const recurringIncome = await window.storageManager.getRecurringIncome();
+            const subscriptions = await window.storageManager.getSubscriptions();
 
-            console.log('Stats data:', { clients, projects, websites, ideas, finances });
+            console.log('Stats data:', { clients, projects, websites, ideas, recurringIncome, subscriptions });
 
-            // Calculate finance balance
-            const balance = Array.isArray(finances) ? finances.reduce((acc, f) => {
-                const amount = parseFloat(f.amount) || 0;
-                if (f.type === 'income') {
-                    return acc + amount;
-                } else if (f.type === 'expense') {
-                    return acc - amount;
-                }
-                return acc;
-            }, 0) : 0;
+            // Calculate financial balance (Net Monthly Income)
+            const grossIncome = Array.isArray(recurringIncome) 
+                ? recurringIncome
+                    .filter(i => i.is_active !== false)
+                    .reduce((sum, i) => sum + (parseFloat(i.monthly_payment) || 0), 0) 
+                : 0;
+            
+            const subscriptionsCost = Array.isArray(subscriptions) 
+                ? subscriptions
+                    .filter(s => s.is_active !== false)
+                    .reduce((sum, s) => sum + (parseFloat(s.monthly_cost) || 0), 0) 
+                : 0;
+            
+            const netIncome = grossIncome - subscriptionsCost;
 
             document.getElementById('total-clients').textContent = Array.isArray(clients) ? clients.length : 0;
             document.getElementById('active-projects').textContent = 
@@ -128,8 +135,8 @@ class AuctusApp {
             document.getElementById('total-ideas').textContent = Array.isArray(ideas) ? ideas.length : 0;
             
             const balanceElement = document.getElementById('finance-balance');
-            balanceElement.textContent = `${balance >= 0 ? '+' : ''}$${balance.toFixed(2)}`;
-            balanceElement.style.color = balance >= 0 ? '#4CAF50' : '#f44336';
+            balanceElement.textContent = `${netIncome >= 0 ? '+' : ''}$${netIncome.toFixed(2)}`;
+            balanceElement.style.color = netIncome >= 0 ? '#4CAF50' : '#f44336';
         } catch (error) {
             console.error('Error updating stats:', error);
         }
