@@ -55,7 +55,7 @@ class ModalManager {
                                 <textarea class="form-textarea" name="notes">${client?.notes || ''}</textarea>
                             </div>
                             ${isEdit ? `
-                            <button type="button" class="btn-primary" style="background: var(--danger-color); margin-bottom: 1rem;" onclick="window.modalManager.deleteClient('${clientId}')">
+                            <button type="button" class="btn-primary btn-danger" style="margin-bottom: 1rem;" onclick="window.modalManager.deleteClient('${clientId}')">
                                 <i class="fas fa-trash"></i> Delete Client
                             </button>
                             ` : ''}
@@ -135,7 +135,7 @@ class ModalManager {
                                 <textarea class="form-textarea" name="description">${project?.description || ''}</textarea>
                             </div>
                             ${isEdit ? `
-                            <button type="button" class="btn-primary" style="background: var(--danger-color); margin-bottom: 1rem;" onclick="window.modalManager.deleteProject('${projectId}')">
+                            <button type="button" class="btn-primary btn-danger" style="margin-bottom: 1rem;" onclick="window.modalManager.deleteProject('${projectId}')">
                                 <i class="fas fa-trash"></i> Delete Project
                             </button>
                             ` : ''}
@@ -205,7 +205,7 @@ class ModalManager {
                                 <input type="text" class="form-input" name="technologies" placeholder="e.g., React, Node.js, MongoDB" value="${website?.technologies || ''}">
                             </div>
                             ${isEdit ? `
-                            <button type="button" class="btn-primary" style="background: var(--danger-color); margin-bottom: 1rem;" onclick="window.modalManager.deleteWebsite('${websiteId}')">
+                            <button type="button" class="btn-primary btn-danger" style="margin-bottom: 1rem;" onclick="window.modalManager.deleteWebsite('${websiteId}')">
                                 <i class="fas fa-trash"></i> Delete Website
                             </button>
                             ` : ''}
@@ -278,7 +278,7 @@ class ModalManager {
                                 <textarea class="form-textarea" name="content" style="min-height: 150px;" required>${idea?.content || ''}</textarea>
                             </div>
                             ${isEdit ? `
-                            <button type="button" class="btn-primary" style="background: var(--danger-color); margin-bottom: 1rem;" onclick="window.modalManager.deleteIdea('${ideaId}')">
+                            <button type="button" class="btn-primary btn-danger" style="margin-bottom: 1rem;" onclick="window.modalManager.deleteIdea('${ideaId}')">
                                 <i class="fas fa-trash"></i> Delete Idea
                             </button>
                             ` : ''}

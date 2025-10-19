@@ -43,28 +43,28 @@
                 </div>
 
                 <div class="dashboard-stats">
-                    <div class="stat-card">
+                    <div class="stat-card" onclick="window.app.switchView('clients')" style="cursor: pointer;">
                         <div class="stat-icon"><i class="fas fa-users"></i></div>
                         <div class="stat-info">
                             <span class="stat-number" id="total-clients">0</span>
                             <span class="stat-label">Total Clients</span>
                         </div>
                     </div>
-                    <div class="stat-card">
+                    <div class="stat-card" onclick="window.app.switchView('projects')" style="cursor: pointer;">
                         <div class="stat-icon"><i class="fas fa-project-diagram"></i></div>
                         <div class="stat-info">
                             <span class="stat-number" id="active-projects">0</span>
                             <span class="stat-label">Active Projects</span>
                         </div>
                     </div>
-                    <div class="stat-card">
+                    <div class="stat-card" onclick="window.app.switchView('websites')" style="cursor: pointer;">
                         <div class="stat-icon"><i class="fas fa-globe"></i></div>
                         <div class="stat-info">
                             <span class="stat-number" id="total-websites">0</span>
                             <span class="stat-label">Websites</span>
                         </div>
                     </div>
-                    <div class="stat-card">
+                    <div class="stat-card" onclick="window.app.switchView('ideas')" style="cursor: pointer;">
                         <div class="stat-icon"><i class="fas fa-lightbulb"></i></div>
                         <div class="stat-info">
                             <span class="stat-number" id="total-ideas">0</span>
@@ -132,10 +132,10 @@
     <div id="modal-container"></div>
 
     <!-- Scripts -->
-    <script src="js/storage.js?v=20251019-2"></script>
-    <script src="js/views.js?v=20251019-2"></script>
-    <script src="js/modals.js?v=20251019-2"></script>
-    <script src="js/app.js?v=20251019-2"></script>
+    <script src="js/storage.js?v=20251019-3"></script>
+    <script src="js/views.js?v=20251019-3"></script>
+    <script src="js/modals.js?v=20251019-3"></script>
+    <script src="js/app.js?v=20251019-3"></script>
     
     <!-- Service Worker Registration -->
     <script>
