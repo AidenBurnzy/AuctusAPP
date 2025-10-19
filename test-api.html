@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>API Test</title>
+    <style>
+        body { font-family: monospace; padding: 20px; background: #1a1a1a; color: #0f0; }
+        button { padding: 10px 20px; margin: 5px; font-size: 16px; }
+        pre { background: #000; padding: 10px; overflow-x: auto; }
+        .error { color: #f00; }
+        .success { color: #0f0; }
+    </style>
+</head>
+<body>
+    <h1>Auctus App - API Test</h1>
+    
+    <button onclick="testClients()">Test GET Clients</button>
+    <button onclick="testProjects()">Test GET Projects</button>
+    <button onclick="testWebsites()">Test GET Websites</button>
+    <button onclick="testIdeas()">Test GET Ideas</button>
+    <button onclick="testInit()">Test DB Init</button>
+    
+    <div id="output"></div>
+
+    <script>
+        const API_BASE = '/.netlify/functions';
+        const output = document.getElementById('output');
+
+        async function testEndpoint(endpoint, method = 'GET', data = null) {
+            output.innerHTML += `<h3>Testing: ${method} ${endpoint}</h3>`;
+            
+            try {
+                const options = {
+                    method,
+                    headers: { 'Content-Type': 'application/json' }
+                };
+                if (data) {
+                    options.body = JSON.stringify(data);
+                }
+                
+                const url = `${API_BASE}/${endpoint}`;
+                output.innerHTML += `<p>URL: ${url}</p>`;
+                
+                const response = await fetch(url, options);
+                output.innerHTML += `<p>Status: ${response.status} ${response.statusText}</p>`;
+                
+                const text = await response.text();
+                output.innerHTML += `<p>Raw Response:</p><pre>${text}</pre>`;
+                
+                let json;
+                try {
+                    json = JSON.parse(text);
+                    output.innerHTML += `<p class="success">✓ Valid JSON</p>`;
+                    output.innerHTML += `<p>Type: ${typeof json}, Is Array: ${Array.isArray(json)}</p>`;
+                    if (Array.isArray(json)) {
+                        output.innerHTML += `<p class="success">✓ Is Array with ${json.length} items</p>`;
+                    }
+                    output.innerHTML += `<pre>${JSON.stringify(json, null, 2)}</pre>`;
+                } catch (e) {
+                    output.innerHTML += `<p class="error">✗ Invalid JSON: ${e.message}</p>`;
+                }
+                
+            } catch (error) {
+                output.innerHTML += `<p class="error">Error: ${error.message}</p>`;
+            }
+            
+            output.innerHTML += '<hr>';
+        }
+
+        async function testClients() {
+            await testEndpoint('clients');
+        }
+
+        async function testProjects() {
+            await testEndpoint('projects');
+        }
+
+        async function testWebsites() {
+            await testEndpoint('websites');
+        }
+
+        async function testIdeas() {
+            await testEndpoint('ideas');
+        }
+
+        async function testInit() {
+            await testEndpoint('db-init');
+        }
+    </script>
+</body>
+</html>
