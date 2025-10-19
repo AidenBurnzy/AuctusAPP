@@ -252,13 +252,26 @@ class ViewManager {
         }));
         
         // Find "To Employees" allocation to use as the employee pool
-        const employeeAllocation = allocations.find(a => 
-            a.category.toLowerCase().includes('employee') || 
-            a.category.toLowerCase().includes('payroll')
-        );
+        const employeeAllocation = allocations.find(a => {
+            const cat = a.category.toLowerCase();
+            return cat.includes('employee') || 
+                   cat.includes('payroll') || 
+                   cat.includes('to employee') ||
+                   cat.includes('staff') ||
+                   cat.includes('team');
+        });
         const employeePool = employeeAllocation 
             ? (netIncome * (parseFloat(employeeAllocation.percentage) || 0)) / 100 
             : netIncome; // Fallback to net income if no employee allocation exists
+        
+        // Debug logging
+        console.log('Employee Pool Calculation:', {
+            allocations,
+            employeeAllocation,
+            netIncome,
+            employeePool,
+            'employeeAllocation.percentage': employeeAllocation?.percentage
+        });
         
         // Calculate employee income from the employee pool
         const employeePayroll = employees.map(e => ({
@@ -375,10 +388,15 @@ class ViewManager {
                 ${employeeAllocation ? `
                 <div style="background: rgba(108, 99, 255, 0.1); padding: 0.75rem; border-radius: 8px; margin-bottom: 1rem; font-size: 0.875rem;">
                     <i class="fas fa-info-circle"></i> Employee Pool: <strong style="color: #6C63FF;">$${employeePool.toFixed(2)}</strong> 
-                    (${parseFloat(employeeAllocation.percentage).toFixed(0)}% of Net Income)
-                    <br><span style="color: var(--text-secondary); font-size: 0.8rem;">Employee percentages are calculated from this pool amount.</span>
+                    (${parseFloat(employeeAllocation.percentage).toFixed(0)}% of Net Income: $${netIncome.toFixed(2)})
+                    <br><span style="color: var(--text-secondary); font-size: 0.8rem;">Employee percentages are calculated from this pool amount from "${employeeAllocation.category}" allocation.</span>
                 </div>
-                ` : ''}
+                ` : `
+                <div style="background: rgba(255, 107, 107, 0.1); padding: 0.75rem; border-radius: 8px; margin-bottom: 1rem; font-size: 0.875rem; border-left: 3px solid #f44336;">
+                    <i class="fas fa-exclamation-triangle"></i> <strong>Warning:</strong> No employee allocation found! 
+                    <br><span style="color: var(--text-secondary); font-size: 0.8rem;">Create a budget allocation with "employee" or "payroll" in the name to set the employee pool. Currently using full net income ($${netIncome.toFixed(2)}).</span>
+                </div>
+                `}
                 <div class="finance-table">
                     <div class="table-header">
                         <div class="table-col">Employee Name</div>
