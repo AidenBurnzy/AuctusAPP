@@ -7,8 +7,20 @@ exports.handler = async () => {
     'Content-Type': 'application/json'
   };
 
+  // Validate environment variable early
+  const connectionString = process.env.NEON_DATABASE_URL;
+  if (!connectionString) {
+    return {
+      statusCode: 500,
+      headers,
+      body: JSON.stringify({
+        error: 'NEON_DATABASE_URL environment variable is not set. Please add it in Netlify site settings.'
+      })
+    };
+  }
+
   const client = new Client({
-    connectionString: process.env.NEON_DATABASE_URL,
+    connectionString,
     ssl: { rejectUnauthorized: false }
   });
 
@@ -77,12 +89,25 @@ exports.handler = async () => {
       })
     };
   } catch (error) {
+    // Provide extra guidance for common connection errors
+    const message = error && error.message ? error.message : String(error);
+    let hint = null;
+    if (message.includes('ECONNREFUSED')) {
+      hint = 'Connection refused. Ensure the NEON_DATABASE_URL is correct and the Neon project is accessible from Netlify (SSL required).';
+    } else if (message.includes('getaddrinfo ENOTFOUND') || message.includes('ENOTFOUND')) {
+      hint = 'DNS lookup failed. Verify the host in NEON_DATABASE_URL is correct.';
+    }
+
     return {
       statusCode: 500,
       headers,
-      body: JSON.stringify({ error: error.message })
+      body: JSON.stringify({ error: message, hint })
     };
   } finally {
-    await client.end();
+    try {
+      await client.end();
+    } catch (e) {
+      // swallow client end errors
+    }
   }
 };
