@@ -22,6 +22,8 @@ class StorageManager {
     }
 
     async apiRequest(endpoint, method = 'GET', data = null) {
+        const url = `${this.API_BASE}/${endpoint}`;
+        console.log(`API Request: ${method} ${url}`);
         try {
             const options = {
                 method,
@@ -29,10 +31,18 @@ class StorageManager {
             };
             if (data) {
                 options.body = JSON.stringify(data);
+                console.log('Request data:', data);
             }
-            const response = await fetch(`${this.API_BASE}/${endpoint}`, options);
-            if (!response.ok) throw new Error(`API error: ${response.status}`);
-            return await response.json();
+            const response = await fetch(url, options);
+            console.log(`API Response: ${response.status} ${response.statusText}`);
+            if (!response.ok) {
+                const errorText = await response.text();
+                console.error('API error response:', errorText);
+                throw new Error(`API error: ${response.status} - ${errorText}`);
+            }
+            const result = await response.json();
+            console.log('API result:', result);
+            return result;
         } catch (error) {
             console.error('API request failed, falling back to localStorage:', error);
             this.USE_API = false; // Fallback to localStorage on API failure
@@ -42,13 +52,18 @@ class StorageManager {
 
     // Clients
     async getClients() {
+        console.log('getClients called, USE_API:', this.USE_API);
         if (this.USE_API) {
             try {
-                return await this.apiRequest('clients');
+                const result = await this.apiRequest('clients');
+                console.log('API returned clients:', result);
+                return result;
             } catch (error) {
+                console.error('API failed, using localStorage:', error);
                 return JSON.parse(localStorage.getItem('auctus_clients') || '[]');
             }
         }
+        console.log('Using localStorage directly');
         return JSON.parse(localStorage.getItem('auctus_clients') || '[]');
     }
 

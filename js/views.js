@@ -1,7 +1,9 @@
 // View Manager - Renders different views
 class ViewManager {
     async renderClientsView() {
+        console.log('Rendering clients view...');
         const clients = await window.storageManager.getClients();
+        console.log('Clients fetched:', clients);
         const container = document.getElementById('clients-view');
         
         container.innerHTML = `
