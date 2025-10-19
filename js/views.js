@@ -225,6 +225,95 @@ class ViewManager {
         `;
     }
 
+    async renderFinancesView() {
+        console.log('Rendering finances view...');
+        let finances = await window.storageManager.getFinances();
+        console.log('Finances fetched:', finances, 'Type:', typeof finances, 'Is Array:', Array.isArray(finances));
+        
+        // Safety check: ensure finances is always an array
+        if (!Array.isArray(finances)) {
+            console.error('Finances is not an array!', finances);
+            finances = [];
+        }
+        
+        // Calculate totals
+        const totals = finances.reduce((acc, f) => {
+            const amount = parseFloat(f.amount) || 0;
+            if (f.type === 'income') {
+                acc.income += amount;
+            } else if (f.type === 'expense') {
+                acc.expense += amount;
+            }
+            return acc;
+        }, { income: 0, expense: 0 });
+        
+        const balance = totals.income - totals.expense;
+        
+        const container = document.getElementById('finances-view');
+        
+        container.innerHTML = `
+            <div class="view-header">
+                <h2>Finances</h2>
+                <div class="finance-actions">
+                    <button class="add-btn" onclick="window.modalManager.openFinanceModal(null, 'income')" style="background: #4CAF50;">
+                        <i class="fas fa-arrow-up"></i> Add Income
+                    </button>
+                    <button class="add-btn" onclick="window.modalManager.openFinanceModal(null, 'expense')" style="background: #f44336;">
+                        <i class="fas fa-arrow-down"></i> Add Expense
+                    </button>
+                </div>
+            </div>
+            
+            <div class="finance-summary">
+                <div class="summary-card" style="border-left: 4px solid #4CAF50;">
+                    <div class="summary-label">Total Income</div>
+                    <div class="summary-amount" style="color: #4CAF50;">$${totals.income.toFixed(2)}</div>
+                </div>
+                <div class="summary-card" style="border-left: 4px solid #f44336;">
+                    <div class="summary-label">Total Expenses</div>
+                    <div class="summary-amount" style="color: #f44336;">$${totals.expense.toFixed(2)}</div>
+                </div>
+                <div class="summary-card" style="border-left: 4px solid ${balance >= 0 ? '#4CAF50' : '#f44336'};">
+                    <div class="summary-label">Balance</div>
+                    <div class="summary-amount" style="color: ${balance >= 0 ? '#4CAF50' : '#f44336'};">${balance >= 0 ? '+' : ''}$${balance.toFixed(2)}</div>
+                </div>
+            </div>
+            
+            ${finances.length === 0 ? this.renderEmptyState('dollar-sign', 'No transactions yet', 'Track your first income or expense') : ''}
+            <div class="list-container">
+                ${finances.map(finance => this.renderFinanceCard(finance)).join('')}
+            </div>
+        `;
+    }
+
+    renderFinanceCard(finance) {
+        const amount = parseFloat(finance.amount) || 0;
+        const isIncome = finance.type === 'income';
+        const date = finance.transaction_date ? new Date(finance.transaction_date).toLocaleDateString() : 'No date';
+        
+        return `
+            <div class="list-item" onclick="window.modalManager.openFinanceModal('${finance.id}')">
+                <div class="item-header">
+                    <div>
+                        <div class="item-title">
+                            <i class="fas fa-arrow-${isIncome ? 'up' : 'down'}" style="color: ${isIncome ? '#4CAF50' : '#f44336'};"></i>
+                            ${finance.category}
+                        </div>
+                        <div class="item-subtitle">${finance.description || 'No description'}</div>
+                    </div>
+                    <div class="finance-amount" style="color: ${isIncome ? '#4CAF50' : '#f44336'};">
+                        ${isIncome ? '+' : '-'}$${amount.toFixed(2)}
+                    </div>
+                </div>
+                <div class="item-meta">
+                    <span><i class="fas fa-calendar"></i> ${date}</span>
+                    ${finance.payment_method ? `<span><i class="fas fa-credit-card"></i> ${finance.payment_method}</span>` : ''}
+                    ${finance.status ? `<span class="item-status ${finance.status === 'completed' ? 'status-completed' : 'status-pending'}">${finance.status}</span>` : ''}
+                </div>
+            </div>
+        `;
+    }
+
     renderEmptyState(icon, title, description) {
         return `
             <div class="empty-state">

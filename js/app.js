@@ -71,6 +71,9 @@ class AuctusApp {
             case 'ideas':
                 await window.viewManager.renderIdeasView();
                 break;
+            case 'finances':
+                await window.viewManager.renderFinancesView();
+                break;
         }
     }
 
@@ -88,6 +91,12 @@ class AuctusApp {
             case 'add-idea':
                 window.modalManager.openIdeaModal();
                 break;
+            case 'add-income':
+                window.modalManager.openFinanceModal(null, 'income');
+                break;
+            case 'add-expense':
+                window.modalManager.openFinanceModal(null, 'expense');
+                break;
         }
     }
 
@@ -97,14 +106,30 @@ class AuctusApp {
             const projects = await window.storageManager.getProjects();
             const websites = await window.storageManager.getWebsites();
             const ideas = await window.storageManager.getIdeas();
+            const finances = await window.storageManager.getFinances();
 
-            console.log('Stats data:', { clients, projects, websites, ideas });
+            console.log('Stats data:', { clients, projects, websites, ideas, finances });
+
+            // Calculate finance balance
+            const balance = Array.isArray(finances) ? finances.reduce((acc, f) => {
+                const amount = parseFloat(f.amount) || 0;
+                if (f.type === 'income') {
+                    return acc + amount;
+                } else if (f.type === 'expense') {
+                    return acc - amount;
+                }
+                return acc;
+            }, 0) : 0;
 
             document.getElementById('total-clients').textContent = Array.isArray(clients) ? clients.length : 0;
             document.getElementById('active-projects').textContent = 
                 Array.isArray(projects) ? projects.filter(p => p.status === 'active').length : 0;
             document.getElementById('total-websites').textContent = Array.isArray(websites) ? websites.length : 0;
             document.getElementById('total-ideas').textContent = Array.isArray(ideas) ? ideas.length : 0;
+            
+            const balanceElement = document.getElementById('finance-balance');
+            balanceElement.textContent = `${balance >= 0 ? '+' : ''}$${balance.toFixed(2)}`;
+            balanceElement.style.color = balance >= 0 ? '#4CAF50' : '#f44336';
         } catch (error) {
             console.error('Error updating stats:', error);
         }

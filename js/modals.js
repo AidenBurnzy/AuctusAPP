@@ -302,6 +302,116 @@ class ModalManager {
         });
     }
 
+    async openFinanceModal(financeId = null, defaultType = 'income') {
+        const finances = await window.storageManager.getFinances();
+        const clients = await window.storageManager.getClients();
+        const projects = await window.storageManager.getProjects();
+        const finance = financeId ? finances.find(f => f.id == financeId) : null;
+        const isEdit = !!finance;
+        
+        const today = new Date().toISOString().split('T')[0];
+
+        this.container.innerHTML = `
+            <div class="modal-overlay" onclick="if(event.target === this) window.modalManager.closeModal()">
+                <div class="modal">
+                    <div class="modal-header">
+                        <h3>${isEdit ? 'Edit Transaction' : 'Add Transaction'}</h3>
+                        <button class="close-btn" onclick="window.modalManager.closeModal()">
+                            <i class="fas fa-times"></i>
+                        </button>
+                    </div>
+                    <div class="modal-content">
+                        <form id="finance-form">
+                            <div class="form-group">
+                                <label>Type *</label>
+                                <select class="form-select" name="type" required>
+                                    <option value="income" ${(finance?.type === 'income' || (!isEdit && defaultType === 'income')) ? 'selected' : ''}>Income</option>
+                                    <option value="expense" ${(finance?.type === 'expense' || (!isEdit && defaultType === 'expense')) ? 'selected' : ''}>Expense</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label>Category *</label>
+                                <input type="text" class="form-input" name="category" value="${finance?.category || ''}" placeholder="e.g., Website Design, Office Supplies" required>
+                            </div>
+                            <div class="form-group">
+                                <label>Amount *</label>
+                                <input type="number" class="form-input" name="amount" value="${finance?.amount || ''}" step="0.01" min="0" placeholder="0.00" required>
+                            </div>
+                            <div class="form-group">
+                                <label>Description</label>
+                                <textarea class="form-textarea" name="description" rows="3" placeholder="Optional notes about this transaction">${finance?.description || ''}</textarea>
+                            </div>
+                            <div class="form-group">
+                                <label>Client (Optional)</label>
+                                <select class="form-select" name="client_id">
+                                    <option value="">None</option>
+                                    ${clients.map(c => `<option value="${c.id}" ${finance?.client_id == c.id ? 'selected' : ''}>${c.name}</option>`).join('')}
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label>Project (Optional)</label>
+                                <select class="form-select" name="project_id">
+                                    <option value="">None</option>
+                                    ${projects.map(p => `<option value="${p.id}" ${finance?.project_id == p.id ? 'selected' : ''}>${p.name}</option>`).join('')}
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label>Transaction Date *</label>
+                                <input type="date" class="form-input" name="transaction_date" value="${finance?.transaction_date || today}" required>
+                            </div>
+                            <div class="form-group">
+                                <label>Payment Method</label>
+                                <select class="form-select" name="payment_method">
+                                    <option value="">Select method</option>
+                                    <option value="cash" ${finance?.payment_method === 'cash' ? 'selected' : ''}>Cash</option>
+                                    <option value="check" ${finance?.payment_method === 'check' ? 'selected' : ''}>Check</option>
+                                    <option value="card" ${finance?.payment_method === 'card' ? 'selected' : ''}>Credit/Debit Card</option>
+                                    <option value="transfer" ${finance?.payment_method === 'transfer' ? 'selected' : ''}>Bank Transfer</option>
+                                    <option value="paypal" ${finance?.payment_method === 'paypal' ? 'selected' : ''}>PayPal</option>
+                                    <option value="other" ${finance?.payment_method === 'other' ? 'selected' : ''}>Other</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label>Status *</label>
+                                <select class="form-select" name="status" required>
+                                    <option value="completed" ${finance?.status === 'completed' || !isEdit ? 'selected' : ''}>Completed</option>
+                                    <option value="pending" ${finance?.status === 'pending' ? 'selected' : ''}>Pending</option>
+                                </select>
+                            </div>
+                            <div class="form-actions">
+                                ${isEdit ? `<button type="button" class="btn btn-danger" onclick="window.modalManager.deleteFinance('${finance.id}')">Delete</button>` : ''}
+                                <button type="submit" class="btn btn-primary">${isEdit ? 'Update' : 'Add'} Transaction</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        `;
+
+        document.getElementById('finance-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const formData = new FormData(e.target);
+            const financeData = {
+                type: formData.get('type'),
+                category: formData.get('category'),
+                amount: parseFloat(formData.get('amount')),
+                description: formData.get('description'),
+                client_id: formData.get('client_id') || null,
+                project_id: formData.get('project_id') || null,
+                transaction_date: formData.get('transaction_date'),
+                payment_method: formData.get('payment_method') || null,
+                status: formData.get('status')
+            };
+
+            if (isEdit) {
+                await window.storageManager.updateFinance(finance.id, financeData);
+            } else {
+                await window.storageManager.addFinance(financeData);
+            }
+            await this.closeModal();
+        });
+    }
+
     async deleteClient(id) {
         if (confirm('Are you sure you want to delete this client?')) {
             await window.storageManager.deleteClient(id);
@@ -326,6 +436,13 @@ class ModalManager {
     async deleteIdea(id) {
         if (confirm('Are you sure you want to delete this idea?')) {
             await window.storageManager.deleteIdea(id);
+            await this.closeModal();
+        }
+    }
+
+    async deleteFinance(id) {
+        if (confirm('Are you sure you want to delete this transaction?')) {
+            await window.storageManager.deleteFinance(id);
             await this.closeModal();
         }
     }

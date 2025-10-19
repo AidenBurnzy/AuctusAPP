@@ -19,6 +19,9 @@ class StorageManager {
         if (!localStorage.getItem('auctus_ideas')) {
             localStorage.setItem('auctus_ideas', JSON.stringify([]));
         }
+        if (!localStorage.getItem('auctus_finances')) {
+            localStorage.setItem('auctus_finances', JSON.stringify([]));
+        }
     }
 
     async apiRequest(endpoint, method = 'GET', data = null) {
@@ -299,6 +302,64 @@ class StorageManager {
         const ideas = await this.getIdeas();
         const filtered = ideas.filter(i => i.id !== id);
         localStorage.setItem('auctus_ideas', JSON.stringify(filtered));
+    }
+
+    // Finances
+    async getFinances() {
+        if (this.USE_API) {
+            try {
+                const result = await this.apiRequest('finances');
+                return Array.isArray(result) ? result : [];
+            } catch (error) {
+                return JSON.parse(localStorage.getItem('auctus_finances') || '[]');
+            }
+        }
+        return JSON.parse(localStorage.getItem('auctus_finances') || '[]');
+    }
+
+    async addFinance(finance) {
+        if (this.USE_API) {
+            try {
+                return await this.apiRequest('finances', 'POST', finance);
+            } catch (error) {
+                // Fallback
+            }
+        }
+        const finances = await this.getFinances();
+        finance.id = Date.now().toString();
+        finance.createdAt = new Date().toISOString();
+        finances.push(finance);
+        localStorage.setItem('auctus_finances', JSON.stringify(finances));
+        return finance;
+    }
+
+    async updateFinance(id, updatedFinance) {
+        if (this.USE_API) {
+            try {
+                return await this.apiRequest('finances', 'PUT', { id, ...updatedFinance });
+            } catch (error) {
+                // Fallback
+            }
+        }
+        const finances = await this.getFinances();
+        const index = finances.findIndex(f => f.id === id);
+        if (index !== -1) {
+            finances[index] = { ...finances[index], ...updatedFinance, updatedAt: new Date().toISOString() };
+            localStorage.setItem('auctus_finances', JSON.stringify(finances));
+        }
+    }
+
+    async deleteFinance(id) {
+        if (this.USE_API) {
+            try {
+                return await this.apiRequest('finances', 'DELETE', { id });
+            } catch (error) {
+                // Fallback
+            }
+        }
+        const finances = await this.getFinances();
+        const filtered = finances.filter(f => f.id !== id);
+        localStorage.setItem('auctus_finances', JSON.stringify(filtered));
     }
 }
 

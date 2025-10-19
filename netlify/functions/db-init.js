@@ -80,12 +80,29 @@ exports.handler = async () => {
       )
     `);
 
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS finances (
+        id SERIAL PRIMARY KEY,
+        type VARCHAR(50) NOT NULL,
+        category VARCHAR(100) NOT NULL,
+        amount DECIMAL(10, 2) NOT NULL,
+        description TEXT,
+        client_id INTEGER REFERENCES clients(id) ON DELETE SET NULL,
+        project_id INTEGER REFERENCES projects(id) ON DELETE SET NULL,
+        transaction_date DATE NOT NULL,
+        payment_method VARCHAR(50),
+        status VARCHAR(50) DEFAULT 'completed',
+        created_at TIMESTAMP DEFAULT NOW(),
+        updated_at TIMESTAMP DEFAULT NOW()
+      )
+    `);
+
     return {
       statusCode: 200,
       headers,
       body: JSON.stringify({ 
         message: 'Database initialized successfully',
-        tables: ['clients', 'projects', 'websites', 'ideas']
+        tables: ['clients', 'projects', 'websites', 'ideas', 'finances']
       })
     };
   } catch (error) {
