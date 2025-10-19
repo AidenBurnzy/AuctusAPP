@@ -24,6 +24,11 @@ class AuctusApp {
             });
         });
 
+        // Settings button
+        document.getElementById('settings-btn').addEventListener('click', () => {
+            this.switchView('settings');
+        });
+
         // Quick action buttons
         document.querySelectorAll('.action-btn').forEach(btn => {
             btn.addEventListener('click', (e) => {
@@ -73,6 +78,9 @@ class AuctusApp {
                 break;
             case 'finances':
                 await window.viewManager.renderFinancesView();
+                break;
+            case 'settings':
+                await window.viewManager.renderSettingsView();
                 break;
         }
     }

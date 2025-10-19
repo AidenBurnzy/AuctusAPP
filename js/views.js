@@ -419,6 +419,190 @@ class ViewManager {
         `;
     }
 
+    async renderSettingsView() {
+        const container = document.getElementById('settings-view');
+        
+        container.innerHTML = `
+            <div class="view-header">
+                <h2><i class="fas fa-cog"></i> Settings & Tools</h2>
+            </div>
+            
+            <div class="settings-grid">
+                <!-- Company Info Section -->
+                <div class="settings-card">
+                    <div class="settings-card-header">
+                        <i class="fas fa-building"></i>
+                        <h3>Company Information</h3>
+                    </div>
+                    <div class="settings-card-body">
+                        <div class="settings-item">
+                            <div class="settings-label">Company Name</div>
+                            <div class="settings-value">Auctus Ventures</div>
+                        </div>
+                        <div class="settings-item">
+                            <div class="settings-label">Founded</div>
+                            <div class="settings-value">2024</div>
+                        </div>
+                        <div class="settings-item">
+                            <div class="settings-label">Services</div>
+                            <div class="settings-value">Website Development & AI Models</div>
+                        </div>
+                        <button class="btn-secondary" onclick="alert('Company settings coming soon!')">
+                            <i class="fas fa-edit"></i> Edit Company Info
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Database Tools -->
+                <div class="settings-card">
+                    <div class="settings-card-header">
+                        <i class="fas fa-database"></i>
+                        <h3>Database Tools</h3>
+                    </div>
+                    <div class="settings-card-body">
+                        <p class="settings-description">Manage your database and data</p>
+                        <button class="btn-secondary" onclick="window.open('/.netlify/functions/db-init', '_blank')">
+                            <i class="fas fa-sync"></i> Initialize Database Tables
+                        </button>
+                        <button class="btn-secondary" onclick="if(confirm('This will export all your data to a JSON file. Continue?')) alert('Export feature coming soon!')">
+                            <i class="fas fa-download"></i> Export All Data
+                        </button>
+                        <button class="btn-secondary" onclick="alert('Import feature coming soon!')">
+                            <i class="fas fa-upload"></i> Import Data
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Reports & Analytics -->
+                <div class="settings-card">
+                    <div class="settings-card-header">
+                        <i class="fas fa-chart-bar"></i>
+                        <h3>Reports & Analytics</h3>
+                    </div>
+                    <div class="settings-card-body">
+                        <p class="settings-description">Generate business reports and insights</p>
+                        <button class="btn-secondary" onclick="alert('Monthly financial report coming soon!')">
+                            <i class="fas fa-file-invoice-dollar"></i> Monthly Financial Report
+                        </button>
+                        <button class="btn-secondary" onclick="alert('Client report coming soon!')">
+                            <i class="fas fa-users"></i> Client Activity Report
+                        </button>
+                        <button class="btn-secondary" onclick="alert('Project timeline coming soon!')">
+                            <i class="fas fa-project-diagram"></i> Project Timeline Report
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Quick Links -->
+                <div class="settings-card">
+                    <div class="settings-card-header">
+                        <i class="fas fa-link"></i>
+                        <h3>Quick Links</h3>
+                    </div>
+                    <div class="settings-card-body">
+                        <p class="settings-description">External resources and tools</p>
+                        <button class="btn-secondary" onclick="window.open('https://console.neon.tech', '_blank')">
+                            <i class="fas fa-external-link-alt"></i> Neon Database Console
+                        </button>
+                        <button class="btn-secondary" onclick="window.open('https://app.netlify.com', '_blank')">
+                            <i class="fas fa-external-link-alt"></i> Netlify Dashboard
+                        </button>
+                        <button class="btn-secondary" onclick="window.open('https://github.com/AidenBurnzy/AuctusAPP', '_blank')">
+                            <i class="fab fa-github"></i> GitHub Repository
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Team Management -->
+                <div class="settings-card">
+                    <div class="settings-card-header">
+                        <i class="fas fa-user-friends"></i>
+                        <h3>Team Management</h3>
+                    </div>
+                    <div class="settings-card-body">
+                        <div class="settings-item">
+                            <div class="settings-label">Team Members</div>
+                            <div class="settings-value">Aiden, Nick</div>
+                        </div>
+                        <div class="settings-item">
+                            <div class="settings-label">Roles</div>
+                            <div class="settings-value">Co-Founders</div>
+                        </div>
+                        <button class="btn-secondary" onclick="window.app.switchView('finances'); setTimeout(() => { const employeeSection = document.querySelector('.finance-section:nth-child(5)'); if(employeeSection) employeeSection.scrollIntoView({behavior: 'smooth'}); }, 100)">
+                            <i class="fas fa-arrow-right"></i> View Employee Payroll
+                        </button>
+                    </div>
+                </div>
+
+                <!-- App Settings -->
+                <div class="settings-card">
+                    <div class="settings-card-header">
+                        <i class="fas fa-sliders-h"></i>
+                        <h3>App Settings</h3>
+                    </div>
+                    <div class="settings-card-body">
+                        <div class="settings-item">
+                            <div class="settings-label">App Version</div>
+                            <div class="settings-value">v1.0 (Oct 2025)</div>
+                        </div>
+                        <div class="settings-item">
+                            <div class="settings-label">Database</div>
+                            <div class="settings-value">Neon PostgreSQL</div>
+                        </div>
+                        <div class="settings-item">
+                            <div class="settings-label">Hosting</div>
+                            <div class="settings-value">Netlify</div>
+                        </div>
+                        <button class="btn-secondary" onclick="if(confirm('This will clear all cached data and reload the app. Continue?')) window.location.reload(true)">
+                            <i class="fas fa-redo"></i> Clear Cache & Reload
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Help & Support -->
+                <div class="settings-card">
+                    <div class="settings-card-header">
+                        <i class="fas fa-question-circle"></i>
+                        <h3>Help & Support</h3>
+                    </div>
+                    <div class="settings-card-body">
+                        <p class="settings-description">Documentation and resources</p>
+                        <button class="btn-secondary" onclick="window.open('https://github.com/AidenBurnzy/AuctusAPP/blob/main/FINANCIAL_SYSTEM_GUIDE.md', '_blank')">
+                            <i class="fas fa-book"></i> Financial System Guide
+                        </button>
+                        <button class="btn-secondary" onclick="window.open('https://github.com/AidenBurnzy/AuctusAPP/blob/main/README.md', '_blank')">
+                            <i class="fas fa-file-alt"></i> Documentation
+                        </button>
+                        <button class="btn-secondary" onclick="window.app.switchView('dashboard')">
+                            <i class="fas fa-home"></i> Back to Dashboard
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Backup & Security -->
+                <div class="settings-card">
+                    <div class="settings-card-header">
+                        <i class="fas fa-shield-alt"></i>
+                        <h3>Backup & Security</h3>
+                    </div>
+                    <div class="settings-card-body">
+                        <div class="settings-item">
+                            <div class="settings-label">Last Backup</div>
+                            <div class="settings-value">Auto (Neon)</div>
+                        </div>
+                        <div class="settings-item">
+                            <div class="settings-label">Data Sync</div>
+                            <div class="settings-value status-active">Active</div>
+                        </div>
+                        <button class="btn-secondary" onclick="alert('Manual backup feature coming soon!')">
+                            <i class="fas fa-cloud-upload-alt"></i> Create Manual Backup
+                        </button>
+                    </div>
+                </div>
+            </div>
+        `;
+    }
+
     renderEmptyState(icon, title, description) {
         return `
             <div class="empty-state">

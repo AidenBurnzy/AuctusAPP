@@ -782,3 +782,107 @@ body {
 ::-webkit-scrollbar-thumb:hover {
     background: var(--primary-color);
 }
+
+/* Settings Page Styles */
+.settings-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 1.5rem;
+    padding-bottom: 2rem;
+}
+
+.settings-card {
+    background: var(--card-bg);
+    border: 1px solid var(--border-color);
+    border-radius: 15px;
+    overflow: hidden;
+    transition: all 0.3s;
+}
+
+.settings-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 8px 24px rgba(108, 99, 255, 0.2);
+}
+
+.settings-card-header {
+    background: rgba(108, 99, 255, 0.1);
+    padding: 1.5rem;
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.settings-card-header i {
+    font-size: 1.5rem;
+    color: var(--primary-color);
+}
+
+.settings-card-header h3 {
+    font-size: 1.1rem;
+    font-weight: 600;
+    margin: 0;
+}
+
+.settings-card-body {
+    padding: 1.5rem;
+}
+
+.settings-description {
+    color: var(--text-secondary);
+    font-size: 0.875rem;
+    margin-bottom: 1rem;
+}
+
+.settings-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.75rem 0;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.settings-item:last-of-type {
+    border-bottom: none;
+    margin-bottom: 1rem;
+}
+
+.settings-label {
+    font-size: 0.875rem;
+    color: var(--text-secondary);
+}
+
+.settings-value {
+    font-weight: 600;
+    color: var(--text-primary);
+}
+
+.btn-secondary {
+    width: 100%;
+    padding: 0.875rem;
+    background: rgba(108, 99, 255, 0.1);
+    color: var(--primary-color);
+    border: 1px solid var(--primary-color);
+    border-radius: 10px;
+    font-size: 0.875rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    margin-top: 0.75rem;
+}
+
+.btn-secondary:hover {
+    background: var(--primary-color);
+    color: white;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(108, 99, 255, 0.4);
+}
+
+.btn-secondary i {
+    font-size: 0.875rem;
+}
+
