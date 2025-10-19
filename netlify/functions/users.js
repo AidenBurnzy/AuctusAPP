@@ -1,12 +1,37 @@
 const { Client } = require('pg');
 
 exports.handler = async (event) => {
+  // Add CORS headers
+  const headers = {
+    'Access-Control-Allow-Origin': '*',
+    'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+    'Access-Control-Allow-Methods': 'GET, POST, OPTIONS'
+  };
+
+  // Handle preflight requests
+  if (event.httpMethod === 'OPTIONS') {
+    return {
+      statusCode: 200,
+      headers,
+      body: ''
+    };
+  }
+
   const client = new Client({
     connectionString: process.env.NEON_DATABASE_URL,
     ssl: { rejectUnauthorized: false }
   });
 
-  await client.connect();
+  try {
+    await client.connect();
+  } catch (error) {
+    console.error('Database connection error:', error);
+    return {
+      statusCode: 500,
+      headers,
+      body: JSON.stringify({ error: 'Failed to connect to database', details: error.message })
+    };
+  }
 
   try {
     if (event.httpMethod === 'POST') {
@@ -31,6 +56,7 @@ exports.handler = async (event) => {
       
       return {
         statusCode: 200,
+        headers,
         body: JSON.stringify(result.rows[0])
       };
     } else if (event.httpMethod === 'GET') {
@@ -40,13 +66,21 @@ exports.handler = async (event) => {
       
       return {
         statusCode: 200,
+        headers,
         body: JSON.stringify(result.rows[0])
+      };
+    } else {
+      return {
+        statusCode: 405,
+        headers,
+        body: JSON.stringify({ error: 'Method not allowed' })
       };
     }
   } catch (error) {
     console.error('Database error:', error);
     return {
       statusCode: 500,
+      headers,
       body: JSON.stringify({ error: error.message })
     };
   } finally {
