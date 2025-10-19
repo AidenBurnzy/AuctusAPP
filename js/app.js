@@ -276,27 +276,17 @@ class AuctusApp {
         const drawer = document.getElementById('nav-drawer');
         const drawerContent = document.getElementById('nav-drawer-content');
         const backdrop = document.getElementById('nav-drawer-backdrop');
+        const drawerHandle = document.getElementById('nav-drawer-handle');
         
         // Exit if elements don't exist (desktop)
-        if (!drawer || !drawerContent || !backdrop) return;
+        if (!drawer || !drawerContent || !backdrop || !drawerHandle) return;
         
         let touchStartY = 0;
         let currentY = 0;
         let isDragging = false;
-        let startedOnHandle = false;
+        let isContentScrolling = false;
 
-        // Prevent body scroll when drawer is open
-        const preventBodyScroll = (e) => {
-            if (drawer.classList.contains('open')) {
-                const target = e.target;
-                // Only allow scroll if target is inside drawer content and not at boundaries
-                if (!drawerContent.contains(target)) {
-                    e.preventDefault();
-                }
-            }
-        };
-
-        // Add body scroll prevention when drawer opens
+        // Override open/close to prevent body scroll
         const originalOpenDrawer = this.openNavDrawer.bind(this);
         this.openNavDrawer = () => {
             originalOpenDrawer();
@@ -309,96 +299,97 @@ class AuctusApp {
             originalCloseDrawer();
             document.body.style.overflow = '';
             document.body.style.touchAction = '';
+            drawer.style.transform = ''; // Reset any transform
+            drawer.style.transition = ''; // Reset transition
         };
 
-        // Handle drawer and handle area
-        const drawerHandle = document.getElementById('nav-drawer-handle');
-        
-        drawerHandle.addEventListener('touchstart', (e) => {
+        // Universal touch handler for the whole drawer
+        drawer.addEventListener('touchstart', (e) => {
             touchStartY = e.touches[0].clientY;
             currentY = touchStartY;
+            isDragging = false;
+            isContentScrolling = false;
+            
+            // Check if touch started on scrollable content
+            const target = e.target;
+            if (drawerContent.contains(target) && target !== drawerHandle) {
+                // If content is scrollable and not at top, allow scroll
+                if (drawerContent.scrollTop > 0) {
+                    isContentScrolling = true;
+                    return;
+                }
+            }
+            
             isDragging = true;
-            startedOnHandle = true;
         }, { passive: true });
 
-        drawerHandle.addEventListener('touchmove', (e) => {
-            if (!isDragging) return;
+        drawer.addEventListener('touchmove', (e) => {
+            if (isContentScrolling) {
+                // Let content scroll naturally
+                return;
+            }
             
-            e.preventDefault();
-            e.stopPropagation();
+            if (!isDragging) return;
             
             currentY = e.touches[0].clientY;
             const deltaY = currentY - touchStartY;
             
-            // Apply visual feedback - drag the drawer down
+            // Only handle downward swipes (closing)
             if (deltaY > 0) {
+                e.preventDefault();
+                e.stopPropagation();
+                
+                // Disable transition for smooth dragging
+                drawer.style.transition = 'none';
                 drawer.style.transform = `translateY(${deltaY}px)`;
             }
         }, { passive: false });
 
-        drawerHandle.addEventListener('touchend', (e) => {
+        drawer.addEventListener('touchend', (e) => {
+            if (isContentScrolling) {
+                isContentScrolling = false;
+                return;
+            }
+            
             if (!isDragging) return;
             
             const deltaY = currentY - touchStartY;
             
-            // Reset transform
-            drawer.style.transform = '';
+            // Re-enable transition
+            drawer.style.transition = 'transform 0.3s cubic-bezier(0.4, 0, 0.2, 1)';
             
-            // If swiped down more than 80px, close the drawer
-            if (deltaY > 80) {
-                this.closeNavDrawer();
+            // If swiped down more than 100px, close the drawer
+            if (deltaY > 100) {
+                drawer.style.transform = 'translateY(100%)';
+                setTimeout(() => {
+                    this.closeNavDrawer();
+                }, 300);
+            } else {
+                // Snap back to open position
+                drawer.style.transform = 'translateY(0)';
+                setTimeout(() => {
+                    drawer.style.transition = '';
+                }, 300);
             }
             
             isDragging = false;
-            startedOnHandle = false;
         }, { passive: true });
 
-        // Handle drawer content scrolling
-        let contentTouchStartY = 0;
-        
+        // Handle content scroll detection
         drawerContent.addEventListener('touchstart', (e) => {
-            contentTouchStartY = e.touches[0].clientY;
-            touchStartY = contentTouchStartY;
-            
-            // Check if we're at the top
-            if (drawerContent.scrollTop === 0) {
-                isDragging = true;
+            if (drawerContent.scrollTop > 0) {
+                isContentScrolling = true;
             }
         }, { passive: true });
 
-        drawerContent.addEventListener('touchmove', (e) => {
-            const currentTouchY = e.touches[0].clientY;
-            const deltaY = currentTouchY - contentTouchStartY;
-            
-            // If at top and trying to scroll up (pull down), enable drawer drag
-            if (drawerContent.scrollTop === 0 && deltaY > 5) {
-                e.preventDefault();
-                currentY = currentTouchY;
-                
-                // Apply visual feedback
-                if (isDragging) {
-                    drawer.style.transform = `translateY(${deltaY}px)`;
-                }
-            }
-        }, { passive: false });
-
-        drawerContent.addEventListener('touchend', (e) => {
-            if (isDragging && drawerContent.scrollTop === 0) {
-                const deltaY = currentY - touchStartY;
-                
-                // Reset transform
-                drawer.style.transform = '';
-                
-                // If swiped down more than 80px from content area, close the drawer
-                if (deltaY > 80) {
-                    this.closeNavDrawer();
-                }
-                
-                isDragging = false;
+        drawerContent.addEventListener('scroll', () => {
+            // If scrolled away from top, enable scrolling mode
+            if (drawerContent.scrollTop > 5) {
+                isContentScrolling = true;
             }
         }, { passive: true });
 
-        // Prevent all touch events on backdrop from reaching body
+        // Prevent backdrop touches from reaching body
         backdrop.addEventListener('touchmove', (e) => {
             e.preventDefault();
             e.stopPropagation();
