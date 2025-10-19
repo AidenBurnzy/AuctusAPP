@@ -11,7 +11,7 @@
     <title>Auctus Ventures</title>
     <link rel="manifest" href="manifest.json">
     <link rel="apple-touch-icon" href="icons/icon-192.png">
-    <link rel="stylesheet" href="css/styles.css?v=20251019-20">
+    <link rel="stylesheet" href="css/styles.css?v=20251019-21">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 </head>
 <body>
@@ -181,36 +181,55 @@
             <div id="websites-view" class="view"></div>
             <div id="ideas-view" class="view"></div>
             <div id="finances-view" class="view"></div>
+            <div id="notes-view" class="view"></div>
             <div id="settings-view" class="view"></div>
         </main>
 
-        <!-- Bottom Navigation -->
-        <nav class="bottom-nav">
-            <button class="nav-btn active" data-view="dashboard">
-                <i class="fas fa-home"></i>
-                <span>Home</span>
-            </button>
-            <button class="nav-btn" data-view="clients">
-                <i class="fas fa-users"></i>
-                <span>Clients</span>
-            </button>
-            <button class="nav-btn" data-view="projects">
-                <i class="fas fa-project-diagram"></i>
-                <span>Projects</span>
-            </button>
-            <button class="nav-btn" data-view="websites">
-                <i class="fas fa-globe"></i>
-                <span>Websites</span>
-            </button>
-            <button class="nav-btn" data-view="ideas">
-                <i class="fas fa-lightbulb"></i>
-                <span>Ideas</span>
-            </button>
-            <button class="nav-btn" data-view="finances">
-                <i class="fas fa-dollar-sign"></i>
-                <span>Finances</span>
-            </button>
-        </nav>
+        <!-- Navigation Drawer -->
+        <div class="nav-drawer-backdrop" id="nav-drawer-backdrop"></div>
+        <div class="nav-drawer" id="nav-drawer">
+            <div class="nav-drawer-handle" id="nav-drawer-handle">
+                <div class="handle-bar"></div>
+            </div>
+            <div class="nav-drawer-content">
+                <h3>Navigation</h3>
+                <div class="nav-grid">
+                    <button class="nav-item active" data-view="dashboard">
+                        <i class="fas fa-home"></i>
+                        <span>Home</span>
+                    </button>
+                    <button class="nav-item" data-view="clients">
+                        <i class="fas fa-users"></i>
+                        <span>Clients</span>
+                    </button>
+                    <button class="nav-item" data-view="projects">
+                        <i class="fas fa-project-diagram"></i>
+                        <span>Projects</span>
+                    </button>
+                    <button class="nav-item" data-view="websites">
+                        <i class="fas fa-globe"></i>
+                        <span>Websites</span>
+                    </button>
+                    <button class="nav-item" data-view="ideas">
+                        <i class="fas fa-lightbulb"></i>
+                        <span>Ideas</span>
+                    </button>
+                    <button class="nav-item" data-view="finances">
+                        <i class="fas fa-dollar-sign"></i>
+                        <span>Finances</span>
+                    </button>
+                    <button class="nav-item" data-view="notes">
+                        <i class="fas fa-sticky-note"></i>
+                        <span>Notes</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Floating Menu Button -->
+        <button class="floating-menu-btn" id="floating-menu-btn">
+            <i class="fas fa-bars"></i>
+        </button>
     </div>
 
     <!-- Employee Portal -->
@@ -251,10 +270,10 @@
     <div id="modal-container"></div>
 
     <!-- Scripts -->
-    <script src="js/storage.js?v=20251019-15"></script>
-    <script src="js/views.js?v=20251019-15"></script>
-    <script src="js/modals.js?v=20251019-15"></script>
-    <script src="js/app.js?v=20251019-15"></script>
+    <script src="js/storage.js?v=20251019-21"></script>
+    <script src="js/views.js?v=20251019-21"></script>
+    <script src="js/modals.js?v=20251019-21"></script>
+    <script src="js/app.js?v=20251019-21"></script>
     
     <!-- Service Worker Registration -->
     <script>

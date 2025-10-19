@@ -170,12 +170,28 @@ class AuctusApp {
             logoutBtn.setAttribute('data-listener', 'true');
         }
 
-        // Navigation buttons
-        document.querySelectorAll('.nav-btn').forEach(btn => {
+        // Navigation items in drawer
+        document.querySelectorAll('.nav-item').forEach(btn => {
             btn.addEventListener('click', (e) => {
                 const view = e.currentTarget.dataset.view;
                 this.switchView(view);
             });
+        });
+
+        // Floating menu button
+        document.getElementById('floating-menu-btn').addEventListener('click', () => {
+            this.openNavDrawer();
+        });
+
+        // Drawer backdrop
+        document.getElementById('nav-drawer-backdrop').addEventListener('click', () => {
+            this.closeNavDrawer();
+        });
+
+        // Drawer handle for swipe
+        const drawerHandle = document.getElementById('nav-drawer-handle');
+        drawerHandle.addEventListener('click', () => {
+            this.closeNavDrawer();
         });
 
         // Settings button
@@ -193,15 +209,15 @@ class AuctusApp {
     }
 
     switchView(viewName) {
-        // Update navigation
-        document.querySelectorAll('.nav-btn').forEach(btn => {
+        // Update navigation items
+        document.querySelectorAll('.nav-item').forEach(btn => {
             btn.classList.remove('active');
         });
         
-        // Only update nav button if it exists (settings doesn't have a nav button)
-        const navBtn = document.querySelector(`[data-view="${viewName}"]`);
-        if (navBtn) {
-            navBtn.classList.add('active');
+        // Only update nav item if it exists
+        const navItem = document.querySelector(`[data-view="${viewName}"]`);
+        if (navItem) {
+            navItem.classList.add('active');
         }
 
         // Update views
@@ -214,8 +230,23 @@ class AuctusApp {
 
         this.currentView = viewName;
 
+        // Close drawer after selection
+        this.closeNavDrawer();
+
         // Load view content
         this.loadViewContent(viewName);
+    }
+
+    openNavDrawer() {
+        document.getElementById('nav-drawer').classList.add('open');
+        document.getElementById('nav-drawer-backdrop').classList.add('active');
+        document.getElementById('floating-menu-btn').classList.add('hidden');
+    }
+
+    closeNavDrawer() {
+        document.getElementById('nav-drawer').classList.remove('open');
+        document.getElementById('nav-drawer-backdrop').classList.remove('active');
+        document.getElementById('floating-menu-btn').classList.remove('hidden');
     }
 
     async loadViewContent(viewName) {
@@ -237,6 +268,9 @@ class AuctusApp {
                 break;
             case 'finances':
                 await window.viewManager.renderFinancesView();
+                break;
+            case 'notes':
+                await window.viewManager.renderNotesView();
                 break;
             case 'settings':
                 await window.viewManager.renderSettingsView();

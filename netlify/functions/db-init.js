@@ -143,12 +143,25 @@ exports.handler = async () => {
       )
     `);
 
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS notes (
+        id SERIAL PRIMARY KEY,
+        title VARCHAR(255) NOT NULL,
+        content TEXT,
+        is_completed BOOLEAN DEFAULT false,
+        priority VARCHAR(50) DEFAULT 'medium',
+        created_by VARCHAR(100),
+        created_at TIMESTAMP DEFAULT NOW(),
+        updated_at TIMESTAMP DEFAULT NOW()
+      )
+    `);
+
     return {
       statusCode: 200,
       headers,
       body: JSON.stringify({ 
         message: 'Database initialized successfully',
-        tables: ['clients', 'projects', 'websites', 'ideas', 'finances', 'recurring_income', 'subscriptions', 'budget_allocations', 'employees']
+        tables: ['clients', 'projects', 'websites', 'ideas', 'finances', 'recurring_income', 'subscriptions', 'budget_allocations', 'employees', 'notes']
       })
     };
   } catch (error) {

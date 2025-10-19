@@ -34,6 +34,9 @@ class StorageManager {
         if (!localStorage.getItem('auctus_employees')) {
             localStorage.setItem('auctus_employees', JSON.stringify([]));
         }
+        if (!localStorage.getItem('auctus_notes')) {
+            localStorage.setItem('auctus_notes', JSON.stringify([]));
+        }
     }
 
     async apiRequest(endpoint, method = 'GET', data = null) {
@@ -600,6 +603,78 @@ class StorageManager {
         const employees = await this.getEmployees();
         const filtered = employees.filter(e => e.id !== id);
         localStorage.setItem('auctus_employees', JSON.stringify(filtered));
+    }
+
+    // Notes methods
+    async getNotes() {
+        if (this.USE_API) {
+            try {
+                const notes = await this.apiRequest('notes');
+                return Array.isArray(notes) ? notes : [];
+            } catch (error) {
+                console.error('Error fetching notes:', error);
+            }
+        }
+        const notes = localStorage.getItem('auctus_notes');
+        return notes ? JSON.parse(notes) : [];
+    }
+
+    async addNote(note) {
+        if (this.USE_API) {
+            try {
+                return await this.apiRequest('notes', 'POST', note);
+            } catch (error) {
+                // Fallback
+            }
+        }
+        const notes = await this.getNotes();
+        const newNote = {
+            ...note,
+            id: Date.now(),
+            created_at: new Date().toISOString(),
+            is_completed: false
+        };
+        notes.push(newNote);
+        localStorage.setItem('auctus_notes', JSON.stringify(notes));
+        return newNote;
+    }
+
+    async updateNote(id, updatedNote) {
+        if (this.USE_API) {
+            try {
+                return await this.apiRequest('notes', 'PUT', { id, ...updatedNote });
+            } catch (error) {
+                // Fallback
+            }
+        }
+        const notes = await this.getNotes();
+        const index = notes.findIndex(n => n.id == id);
+        if (index !== -1) {
+            notes[index] = { ...notes[index], ...updatedNote, updated_at: new Date().toISOString() };
+            localStorage.setItem('auctus_notes', JSON.stringify(notes));
+            return notes[index];
+        }
+    }
+
+    async deleteNote(id) {
+        if (this.USE_API) {
+            try {
+                return await this.apiRequest('notes', 'DELETE', { id });
+            } catch (error) {
+                // Fallback
+            }
+        }
+        const notes = await this.getNotes();
+        const filtered = notes.filter(n => n.id != id);
+        localStorage.setItem('auctus_notes', JSON.stringify(filtered));
+    }
+
+    async toggleNoteComplete(id) {
+        const notes = await this.getNotes();
+        const note = notes.find(n => n.id == id);
+        if (note) {
+            return await this.updateNote(id, { ...note, is_completed: !note.is_completed });
+        }
     }
 }
 

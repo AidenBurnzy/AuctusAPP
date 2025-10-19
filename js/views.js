@@ -612,6 +612,93 @@ class ViewManager {
             </div>
         `;
     }
+
+    async renderNotesView() {
+        const container = document.getElementById('notes-view');
+        const notes = await window.storageManager.getNotes();
+        
+        const pendingNotes = Array.isArray(notes) ? notes.filter(n => !n.is_completed) : [];
+        const completedNotes = Array.isArray(notes) ? notes.filter(n => n.is_completed) : [];
+        
+        container.innerHTML = `
+            <div class="view-header">
+                <h2><i class="fas fa-sticky-note"></i> Notes & Reminders</h2>
+                <button class="add-btn" onclick="window.modalManager.openNoteModal()">
+                    <i class="fas fa-plus"></i> Add Note
+                </button>
+            </div>
+            
+            <div class="notes-section">
+                <h3 class="section-title"><i class="fas fa-tasks"></i> Pending (${pendingNotes.length})</h3>
+                <div class="notes-list">
+                    ${pendingNotes.length === 0 ? `
+                        <div class="empty-state">
+                            <i class="fas fa-clipboard-list"></i>
+                            <p>No pending notes. Add a reminder or note!</p>
+                        </div>
+                    ` : pendingNotes.map(note => `
+                        <div class="note-card" data-id="${note.id}">
+                            <div class="note-checkbox">
+                                <input type="checkbox" ${note.is_completed ? 'checked' : ''} 
+                                    onchange="window.storageManager.toggleNoteComplete(${note.id}).then(() => window.viewManager.renderNotesView())">
+                            </div>
+                            <div class="note-content" onclick="window.modalManager.openNoteModal(${note.id})">
+                                <h4>${note.title}</h4>
+                                ${note.content ? `<p>${note.content}</p>` : ''}
+                                <div class="note-meta">
+                                    <span class="note-priority priority-${note.priority}">
+                                        <i class="fas fa-flag"></i> ${note.priority}
+                                    </span>
+                                    ${note.created_by ? `<span><i class="fas fa-user"></i> ${note.created_by}</span>` : ''}
+                                    <span><i class="fas fa-clock"></i> ${new Date(note.created_at).toLocaleDateString()}</span>
+                                </div>
+                            </div>
+                            <div class="note-actions">
+                                <button class="icon-btn" onclick="window.modalManager.openNoteModal(${note.id})" title="Edit">
+                                    <i class="fas fa-edit"></i>
+                                </button>
+                                <button class="icon-btn" onclick="window.modalManager.deleteNote(${note.id})" title="Delete">
+                                    <i class="fas fa-trash"></i>
+                                </button>
+                            </div>
+                        </div>
+                    `).join('')}
+                </div>
+            </div>
+            
+            ${completedNotes.length > 0 ? `
+                <div class="notes-section">
+                    <h3 class="section-title"><i class="fas fa-check-circle"></i> Completed (${completedNotes.length})</h3>
+                    <div class="notes-list">
+                        ${completedNotes.map(note => `
+                            <div class="note-card completed" data-id="${note.id}">
+                                <div class="note-checkbox">
+                                    <input type="checkbox" checked 
+                                        onchange="window.storageManager.toggleNoteComplete(${note.id}).then(() => window.viewManager.renderNotesView())">
+                                </div>
+                                <div class="note-content" onclick="window.modalManager.openNoteModal(${note.id})">
+                                    <h4>${note.title}</h4>
+                                    ${note.content ? `<p>${note.content}</p>` : ''}
+                                    <div class="note-meta">
+                                        <span class="note-priority priority-${note.priority}">
+                                            <i class="fas fa-flag"></i> ${note.priority}
+                                        </span>
+                                        ${note.created_by ? `<span><i class="fas fa-user"></i> ${note.created_by}</span>` : ''}
+                                        <span><i class="fas fa-clock"></i> ${new Date(note.created_at).toLocaleDateString()}</span>
+                                    </div>
+                                </div>
+                                <div class="note-actions">
+                                    <button class="icon-btn" onclick="window.modalManager.deleteNote(${note.id})" title="Delete">
+                                        <i class="fas fa-trash"></i>
+                                    </button>
+                                </div>
+                            </div>
+                        `).join('')}
+                    </div>
+                </div>
+            ` : ''}
+        `;
+    }
 }
 
 // Initialize view manager

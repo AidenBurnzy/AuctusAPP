@@ -736,6 +736,93 @@ class ModalManager {
             await this.closeModal();
         }
     }
+
+    async openNoteModal(noteId = null) {
+        const notes = await window.storageManager.getNotes();
+        const note = noteId ? notes.find(n => n.id == noteId) : null;
+        const isEdit = !!note;
+
+        this.container.innerHTML = `
+            <div class="modal-overlay" onclick="if(event.target === this) window.modalManager.closeModal()">
+                <div class="modal">
+                    <div class="modal-header">
+                        <h3>${isEdit ? 'Edit Note' : 'Add New Note'}</h3>
+                        <button class="close-btn" onclick="window.modalManager.closeModal()">
+                            <i class="fas fa-times"></i>
+                        </button>
+                    </div>
+                    <div class="modal-content">
+                        <form id="note-form">
+                            <div class="form-group">
+                                <label>Title *</label>
+                                <input type="text" class="form-input" name="title" value="${note?.title || ''}" placeholder="Enter note title" required>
+                            </div>
+                            <div class="form-group">
+                                <label>Details</label>
+                                <textarea class="form-input" name="content" rows="4" placeholder="Add more details...">${note?.content || ''}</textarea>
+                            </div>
+                            <div class="form-group">
+                                <label>Priority</label>
+                                <select class="form-select" name="priority">
+                                    <option value="low" ${note?.priority === 'low' ? 'selected' : ''}>Low</option>
+                                    <option value="medium" ${note?.priority === 'medium' ? 'selected' : ''}>Medium</option>
+                                    <option value="high" ${note?.priority === 'high' ? 'selected' : ''}>High</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label>Created By</label>
+                                <select class="form-select" name="created_by">
+                                    <option value="Aiden" ${note?.created_by === 'Aiden' ? 'selected' : ''}>Aiden</option>
+                                    <option value="Nick" ${note?.created_by === 'Nick' ? 'selected' : ''}>Nick</option>
+                                    <option value="Both" ${note?.created_by === 'Both' ? 'selected' : ''}>Both</option>
+                                </select>
+                            </div>
+                            ${isEdit ? `
+                            <div class="form-group">
+                                <label class="checkbox-label">
+                                    <input type="checkbox" name="is_completed" ${note.is_completed ? 'checked' : ''}>
+                                    Mark as completed
+                                </label>
+                            </div>
+                            ` : ''}
+                            <div class="form-actions">
+                                ${isEdit ? `<button type="button" class="btn-delete" onclick="window.modalManager.deleteNote(${note.id})">Delete</button>` : ''}
+                                <button type="button" class="btn-secondary" onclick="window.modalManager.closeModal()">Cancel</button>
+                                <button type="submit" class="btn-primary">${isEdit ? 'Update' : 'Add'} Note</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        `;
+
+        const form = document.getElementById('note-form');
+        form.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const formData = new FormData(form);
+            const noteData = {
+                title: formData.get('title'),
+                content: formData.get('content'),
+                priority: formData.get('priority'),
+                created_by: formData.get('created_by'),
+                is_completed: formData.get('is_completed') === 'on'
+            };
+
+            if (isEdit) {
+                await window.storageManager.updateNote(note.id, noteData);
+            } else {
+                await window.storageManager.addNote(noteData);
+            }
+            await this.closeModal();
+        });
+    }
+
+    async deleteNote(id) {
+        if (confirm('Are you sure you want to delete this note?')) {
+            await window.storageManager.deleteNote(id);
+            await this.closeModal();
+        }
+    }
 }
 
 // Initialize modal manager
