@@ -35,16 +35,30 @@ class StorageManager {
             }
             const response = await fetch(url, options);
             console.log(`API Response: ${response.status} ${response.statusText}`);
+            
+            // Get the response text first
+            const responseText = await response.text();
+            console.log('Raw API response:', responseText);
+            
             if (!response.ok) {
-                const errorText = await response.text();
-                console.error('API error response:', errorText);
-                throw new Error(`API error: ${response.status} - ${errorText}`);
+                console.error('API error response:', responseText);
+                throw new Error(`API error: ${response.status} - ${responseText}`);
             }
-            const result = await response.json();
-            console.log('API result:', result);
+            
+            // Try to parse as JSON
+            let result;
+            try {
+                result = JSON.parse(responseText);
+                console.log('Parsed API result:', result, 'Type:', typeof result, 'Is Array:', Array.isArray(result));
+            } catch (parseError) {
+                console.error('Failed to parse JSON:', parseError);
+                throw new Error('Invalid JSON response from API');
+            }
+            
             return result;
         } catch (error) {
-            console.error('API request failed, falling back to localStorage:', error);
+            console.error('API request failed:', error.message);
+            console.error('Full error:', error);
             this.USE_API = false; // Fallback to localStorage on API failure
             throw error;
         }
