@@ -1,14 +1,7 @@
-[build][build]
+[build]
+  base = "."
+  publish = "."
+  functions = "netlify/functions"
 
-  base = "."  base = "."
-
-  publish = "."  publish = "auctus-app"
-
-  functions = "netlify/functions"  functions = "netlify/functions"
-
-
-
-[functions][functions]
-
-  node_bundler = "esbuild"  node_bundler = "esbuild"
-
+[functions]
+  node_bundler = "esbuild"
