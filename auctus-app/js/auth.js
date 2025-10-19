@@ -78,15 +78,28 @@ async function initializeAuth0() {
 async function handlePostLoginFlow() {
     try {
         const user = await auth0Client.getUser();
-        const token = await auth0Client.getTokenSilently();
+        console.log('User authenticated:', user);
+
+        // Try to get token silently, but don't fail if it doesn't work
+        let token = null;
+        try {
+            token = await auth0Client.getTokenSilently();
+            console.log('Token retrieved successfully');
+        } catch (tokenError) {
+            console.warn('Could not get token silently, continuing without it:', tokenError);
+        }
 
         // Sync user with Neon database
+        const headers = {
+            'Content-Type': 'application/json'
+        };
+        if (token) {
+            headers['Authorization'] = `Bearer ${token}`;
+        }
+
         const response = await fetch('/.netlify/functions/users', {
             method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${token}`
-            },
+            headers: headers,
             body: JSON.stringify({
                 auth0_id: user.sub,
                 email: user.email,
@@ -97,29 +110,37 @@ async function handlePostLoginFlow() {
         });
 
         if (!response.ok) {
-            throw new Error('Failed to sync user profile');
+            const errorText = await response.text();
+            console.error('Failed to sync user profile:', errorText);
+            throw new Error(`Failed to sync user profile: ${errorText}`);
         }
+
+        const syncResult = await response.json();
+        console.log('User synced successfully:', syncResult);
 
         // Get user profile from database to check role
         const profileResponse = await fetch(`/.netlify/functions/users?auth0_id=${user.sub}`, {
-            headers: {
-                'Authorization': `Bearer ${token}`
-            }
+            headers: token ? { 'Authorization': `Bearer ${token}` } : {}
         });
 
         if (!profileResponse.ok) {
-            throw new Error('Failed to retrieve user profile');
+            const errorText = await profileResponse.text();
+            console.error('Failed to retrieve user profile:', errorText);
+            throw new Error(`Failed to retrieve user profile: ${errorText}`);
         }
 
         const userProfile = await profileResponse.json();
+        console.log('User profile retrieved:', userProfile);
 
         // Store authentication info in localStorage
-        localStorage.setItem('auth0_token', token);
+        localStorage.setItem('auth0_token', token || '');
         localStorage.setItem('isAuthenticated', 'true');
         localStorage.setItem('userRole', userProfile.role || 'user');
         localStorage.setItem('currentUserId', user.sub);
         localStorage.setItem('username', `${user.given_name || ''} ${user.family_name || ''}`.trim());
         localStorage.setItem('userEmail', user.email);
+
+        console.log('Redirecting user based on role:', userProfile.role);
 
         // Add login animation
         const loginCard = document.querySelector('.login-card');
@@ -138,7 +159,9 @@ async function handlePostLoginFlow() {
         }, 500);
     } catch (error) {
         console.error('Error in post-login flow:', error);
-        showError('Failed to complete authentication. Please try again.');
+        console.error('Error details:', error.message);
+        console.error('Error stack:', error.stack);
+        showError(`Failed to complete authentication: ${error.message}`);
     }
 }
 
