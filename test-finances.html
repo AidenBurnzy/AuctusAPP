@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Finances API</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 50px auto;
+            padding: 20px;
+            background: #1a1a2e;
+            color: white;
+        }
+        button {
+            padding: 10px 20px;
+            margin: 10px;
+            background: #6C63FF;
+            border: none;
+            border-radius: 8px;
+            color: white;
+            cursor: pointer;
+        }
+        button:hover {
+            background: #5651E5;
+        }
+        pre {
+            background: #252541;
+            padding: 20px;
+            border-radius: 8px;
+            overflow-x: auto;
+        }
+    </style>
+</head>
+<body>
+    <h1>Test Finances API</h1>
+    
+    <div>
+        <button onclick="testGet()">GET All Finances</button>
+        <button onclick="testPost()">POST Test Finance</button>
+        <button onclick="initDB()">Initialize DB</button>
+    </div>
+    
+    <h3>Response:</h3>
+    <pre id="response">Click a button to test the API...</pre>
+
+    <script>
+        const API_BASE = '/.netlify/functions';
+
+        async function testGet() {
+            try {
+                const response = await fetch(`${API_BASE}/finances`);
+                const data = await response.json();
+                document.getElementById('response').textContent = JSON.stringify(data, null, 2);
+            } catch (error) {
+                document.getElementById('response').textContent = 'Error: ' + error.message;
+            }
+        }
+
+        async function testPost() {
+            try {
+                const testFinance = {
+                    type: 'income',
+                    category: 'Test Payment',
+                    amount: 100.00,
+                    description: 'Test transaction from test page',
+                    transaction_date: new Date().toISOString().split('T')[0],
+                    payment_method: 'card',
+                    status: 'completed'
+                };
+                
+                const response = await fetch(`${API_BASE}/finances`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(testFinance)
+                });
+                
+                const data = await response.json();
+                document.getElementById('response').textContent = JSON.stringify(data, null, 2);
+            } catch (error) {
+                document.getElementById('response').textContent = 'Error: ' + error.message;
+            }
+        }
+
+        async function initDB() {
+            try {
+                const response = await fetch(`${API_BASE}/db-init`);
+                const data = await response.json();
+                document.getElementById('response').textContent = JSON.stringify(data, null, 2);
+            } catch (error) {
+                document.getElementById('response').textContent = 'Error: ' + error.message;
+            }
+        }
+    </script>
+</body>
+</html>
