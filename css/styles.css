@@ -17,11 +17,17 @@
     box-sizing: border-box;
 }
 
+html {
+    height: -webkit-fill-available;
+}
+
 body {
     font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
     background: var(--dark-bg);
     color: var(--text-primary);
     overflow-x: hidden;
+    min-height: 100vh;
+    min-height: -webkit-fill-available;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
 }
@@ -76,12 +82,14 @@ body {
 /* App Container */
 #app {
     min-height: 100vh;
+    min-height: -webkit-fill-available;
     display: flex;
     flex-direction: column;
     padding-bottom: 70px;
+    padding-bottom: calc(70px + env(safe-area-inset-bottom));
 }
 
-/* Header */
+/* Header *//* Header */
 .app-header {
     background: var(--card-bg);
     padding: 1rem 1.5rem;
@@ -266,7 +274,11 @@ body {
     display: flex;
     justify-content: space-around;
     padding: 0.5rem 0;
+    padding-bottom: calc(0.5rem + env(safe-area-inset-bottom));
     z-index: 100;
+    -webkit-transform: translateZ(0);
+    transform: translateZ(0);
+    will-change: transform;
 }
 
 .nav-btn {
