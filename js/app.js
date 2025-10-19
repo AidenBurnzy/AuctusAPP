@@ -275,65 +275,133 @@ class AuctusApp {
     setupDrawerSwipe() {
         const drawer = document.getElementById('nav-drawer');
         const drawerContent = document.getElementById('nav-drawer-content');
+        const backdrop = document.getElementById('nav-drawer-backdrop');
         
         // Exit if elements don't exist (desktop)
-        if (!drawer || !drawerContent) return;
+        if (!drawer || !drawerContent || !backdrop) return;
         
         let touchStartY = 0;
-        let touchEndY = 0;
+        let currentY = 0;
         let isDragging = false;
+        let startedOnHandle = false;
 
-        drawer.addEventListener('touchstart', (e) => {
-            // Only start tracking if touch is on the drawer handle area (top 60px)
-            const touch = e.touches[0];
-            const rect = drawer.getBoundingClientRect();
-            const touchY = touch.clientY - rect.top;
-            
-            if (touchY < 60) { // Handle area
-                touchStartY = touch.clientY;
-                isDragging = true;
+        // Prevent body scroll when drawer is open
+        const preventBodyScroll = (e) => {
+            if (drawer.classList.contains('open')) {
+                const target = e.target;
+                // Only allow scroll if target is inside drawer content and not at boundaries
+                if (!drawerContent.contains(target)) {
+                    e.preventDefault();
+                }
             }
+        };
+
+        // Add body scroll prevention when drawer opens
+        const originalOpenDrawer = this.openNavDrawer.bind(this);
+        this.openNavDrawer = () => {
+            originalOpenDrawer();
+            document.body.style.overflow = 'hidden';
+            document.body.style.touchAction = 'none';
+        };
+
+        const originalCloseDrawer = this.closeNavDrawer.bind(this);
+        this.closeNavDrawer = () => {
+            originalCloseDrawer();
+            document.body.style.overflow = '';
+            document.body.style.touchAction = '';
+        };
+
+        // Handle drawer and handle area
+        const drawerHandle = document.getElementById('nav-drawer-handle');
+        
+        drawerHandle.addEventListener('touchstart', (e) => {
+            touchStartY = e.touches[0].clientY;
+            currentY = touchStartY;
+            isDragging = true;
+            startedOnHandle = true;
         }, { passive: true });
 
-        drawer.addEventListener('touchmove', (e) => {
+        drawerHandle.addEventListener('touchmove', (e) => {
             if (!isDragging) return;
             
-            const touch = e.touches[0];
-            const deltaY = touch.clientY - touchStartY;
+            e.preventDefault();
+            e.stopPropagation();
             
-            // Only prevent scroll if dragging down
+            currentY = e.touches[0].clientY;
+            const deltaY = currentY - touchStartY;
+            
+            // Apply visual feedback - drag the drawer down
             if (deltaY > 0) {
-                e.preventDefault();
+                drawer.style.transform = `translateY(${deltaY}px)`;
             }
         }, { passive: false });
 
-        drawer.addEventListener('touchend', (e) => {
+        drawerHandle.addEventListener('touchend', (e) => {
             if (!isDragging) return;
             
-            touchEndY = e.changedTouches[0].clientY;
-            const swipeDistance = touchEndY - touchStartY;
+            const deltaY = currentY - touchStartY;
             
-            // If swiped down more than 50px, close the drawer
-            if (swipeDistance > 50) {
+            // Reset transform
+            drawer.style.transform = '';
+            
+            // If swiped down more than 80px, close the drawer
+            if (deltaY > 80) {
                 this.closeNavDrawer();
             }
             
             isDragging = false;
+            startedOnHandle = false;
         }, { passive: true });
 
-        // Prevent scrolling on drawer content when at top and trying to pull down
+        // Handle drawer content scrolling
+        let contentTouchStartY = 0;
+        
         drawerContent.addEventListener('touchstart', (e) => {
-            touchStartY = e.touches[0].clientY;
+            contentTouchStartY = e.touches[0].clientY;
+            touchStartY = contentTouchStartY;
+            
+            // Check if we're at the top
+            if (drawerContent.scrollTop === 0) {
+                isDragging = true;
+            }
         }, { passive: true });
 
         drawerContent.addEventListener('touchmove', (e) => {
-            const touch = e.touches[0];
-            const deltaY = touch.clientY - touchStartY;
+            const currentTouchY = e.touches[0].clientY;
+            const deltaY = currentTouchY - contentTouchStartY;
             
-            // If at top of scroll and pulling down, prevent default to allow drawer swipe
-            if (drawerContent.scrollTop === 0 && deltaY > 0) {
+            // If at top and trying to scroll up (pull down), enable drawer drag
+            if (drawerContent.scrollTop === 0 && deltaY > 5) {
                 e.preventDefault();
+                currentY = currentTouchY;
+                
+                // Apply visual feedback
+                if (isDragging) {
+                    drawer.style.transform = `translateY(${deltaY}px)`;
+                }
             }
+        }, { passive: false });
+
+        drawerContent.addEventListener('touchend', (e) => {
+            if (isDragging && drawerContent.scrollTop === 0) {
+                const deltaY = currentY - touchStartY;
+                
+                // Reset transform
+                drawer.style.transform = '';
+                
+                // If swiped down more than 80px from content area, close the drawer
+                if (deltaY > 80) {
+                    this.closeNavDrawer();
+                }
+                
+                isDragging = false;
+            }
+        }, { passive: true });
+
+        // Prevent all touch events on backdrop from reaching body
+        backdrop.addEventListener('touchmove', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
         }, { passive: false });
     }
 

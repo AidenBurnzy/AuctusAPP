@@ -387,6 +387,7 @@ body {
     z-index: 1000;
     box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.3);
     padding-bottom: env(safe-area-inset-bottom);
+    touch-action: none;
 }
 
 .nav-drawer.open {
@@ -398,6 +399,9 @@ body {
     justify-content: center;
     padding: 1rem;
     cursor: pointer;
+    touch-action: pan-y;
+    user-select: none;
+    -webkit-user-select: none;
 }
 
 .handle-bar {
@@ -410,7 +414,10 @@ body {
 .nav-drawer-content {
     padding: 0 1.5rem 2rem;
     overflow-y: auto;
+    overflow-x: hidden;
     max-height: calc(70vh - 3rem);
+    overscroll-behavior: contain;
+    -webkit-overflow-scrolling: touch;
 }
 
 .nav-drawer-content h3 {
