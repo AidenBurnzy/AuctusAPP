@@ -54,22 +54,22 @@ class AuctusApp {
         this.loadViewContent(viewName);
     }
 
-    loadViewContent(viewName) {
+    async loadViewContent(viewName) {
         switch(viewName) {
             case 'dashboard':
-                this.updateStats();
+                await this.updateStats();
                 break;
             case 'clients':
-                window.viewManager.renderClientsView();
+                await window.viewManager.renderClientsView();
                 break;
             case 'projects':
-                window.viewManager.renderProjectsView();
+                await window.viewManager.renderProjectsView();
                 break;
             case 'websites':
-                window.viewManager.renderWebsitesView();
+                await window.viewManager.renderWebsitesView();
                 break;
             case 'ideas':
-                window.viewManager.renderIdeasView();
+                await window.viewManager.renderIdeasView();
                 break;
         }
     }
@@ -91,11 +91,11 @@ class AuctusApp {
         }
     }
 
-    updateStats() {
-        const clients = window.storageManager.getClients();
-        const projects = window.storageManager.getProjects();
-        const websites = window.storageManager.getWebsites();
-        const ideas = window.storageManager.getIdeas();
+    async updateStats() {
+        const clients = await window.storageManager.getClients();
+        const projects = await window.storageManager.getProjects();
+        const websites = await window.storageManager.getWebsites();
+        const ideas = await window.storageManager.getIdeas();
 
         document.getElementById('total-clients').textContent = clients.length;
         document.getElementById('active-projects').textContent = 

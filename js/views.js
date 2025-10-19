@@ -1,7 +1,7 @@
 // View Manager - Renders different views
 class ViewManager {
-    renderClientsView() {
-        const clients = window.storageManager.getClients();
+    async renderClientsView() {
+        const clients = await window.storageManager.getClients();
         const container = document.getElementById('clients-view');
         
         container.innerHTML = `
@@ -44,9 +44,9 @@ class ViewManager {
         `;
     }
 
-    renderProjectsView() {
-        const projects = window.storageManager.getProjects();
-        const clients = window.storageManager.getClients();
+    async renderProjectsView() {
+        const projects = await window.storageManager.getProjects();
+        const clients = await window.storageManager.getClients();
         const container = document.getElementById('projects-view');
         
         container.innerHTML = `
@@ -95,8 +95,8 @@ class ViewManager {
         `;
     }
 
-    renderWebsitesView() {
-        const websites = window.storageManager.getWebsites();
+    async renderWebsitesView() {
+        const websites = await window.storageManager.getWebsites();
         const container = document.getElementById('websites-view');
         
         container.innerHTML = `
@@ -143,8 +143,8 @@ class ViewManager {
         `;
     }
 
-    renderIdeasView() {
-        const ideas = window.storageManager.getIdeas();
+    async renderIdeasView() {
+        const ideas = await window.storageManager.getIdeas();
         const container = document.getElementById('ideas-view');
         
         container.innerHTML = `

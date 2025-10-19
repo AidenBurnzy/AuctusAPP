@@ -68,23 +68,26 @@ class ModalManager {
             </div>
         `;
 
-        document.getElementById('client-form').addEventListener('submit', (e) => {
+        document.getElementById('client-form').addEventListener('submit', async (e) => {
             e.preventDefault();
             const formData = new FormData(e.target);
             const data = Object.fromEntries(formData);
             
             if (isEdit) {
-                window.storageManager.updateClient(clientId, data);
+                await window.storageManager.updateClient(clientId, data);
             } else {
-                window.storageManager.addClient(data);
+                await window.storageManager.addClient(data);
             }
             this.closeModal();
+            await window.app.loadViewContent('clients');
+            await window.app.updateStats();
         });
     }
 
-    openProjectModal(projectId = null) {
-        const project = projectId ? window.storageManager.getProjects().find(p => p.id === projectId) : null;
-        const clients = window.storageManager.getClients();
+    async openProjectModal(projectId = null) {
+        const projects = await window.storageManager.getProjects();
+        const project = projectId ? projects.find(p => p.id === projectId) : null;
+        const clients = await window.storageManager.getClients();
         const isEdit = !!project;
 
         this.container.innerHTML = `
@@ -145,22 +148,25 @@ class ModalManager {
             </div>
         `;
 
-        document.getElementById('project-form').addEventListener('submit', (e) => {
+        document.getElementById('project-form').addEventListener('submit', async (e) => {
             e.preventDefault();
             const formData = new FormData(e.target);
             const data = Object.fromEntries(formData);
             
             if (isEdit) {
-                window.storageManager.updateProject(projectId, data);
+                await window.storageManager.updateProject(projectId, data);
             } else {
-                window.storageManager.addProject(data);
+                await window.storageManager.addProject(data);
             }
             this.closeModal();
+            await window.app.loadViewContent('projects');
+            await window.app.updateStats();
         });
     }
 
-    openWebsiteModal(websiteId = null) {
-        const website = websiteId ? window.storageManager.getWebsites().find(w => w.id === websiteId) : null;
+    async openWebsiteModal(websiteId = null) {
+        const websites = await window.storageManager.getWebsites();
+        const website = websiteId ? websites.find(w => w.id === websiteId) : null;
         const isEdit = !!website;
 
         this.container.innerHTML = `
@@ -212,22 +218,25 @@ class ModalManager {
             </div>
         `;
 
-        document.getElementById('website-form').addEventListener('submit', (e) => {
+        document.getElementById('website-form').addEventListener('submit', async (e) => {
             e.preventDefault();
             const formData = new FormData(e.target);
             const data = Object.fromEntries(formData);
             
             if (isEdit) {
-                window.storageManager.updateWebsite(websiteId, data);
+                await window.storageManager.updateWebsite(websiteId, data);
             } else {
-                window.storageManager.addWebsite(data);
+                await window.storageManager.addWebsite(data);
             }
             this.closeModal();
+            await window.app.loadViewContent('websites');
+            await window.app.updateStats();
         });
     }
 
-    openIdeaModal(ideaId = null) {
-        const idea = ideaId ? window.storageManager.getIdeas().find(i => i.id === ideaId) : null;
+    async openIdeaModal(ideaId = null) {
+        const ideas = await window.storageManager.getIdeas();
+        const idea = ideaId ? ideas.find(i => i.id === ideaId) : null;
         const isEdit = !!idea;
 
         this.container.innerHTML = `
@@ -282,45 +291,55 @@ class ModalManager {
             </div>
         `;
 
-        document.getElementById('idea-form').addEventListener('submit', (e) => {
+        document.getElementById('idea-form').addEventListener('submit', async (e) => {
             e.preventDefault();
             const formData = new FormData(e.target);
             const data = Object.fromEntries(formData);
             
             if (isEdit) {
-                window.storageManager.updateIdea(ideaId, data);
+                await window.storageManager.updateIdea(ideaId, data);
             } else {
-                window.storageManager.addIdea(data);
+                await window.storageManager.addIdea(data);
             }
             this.closeModal();
+            await window.app.loadViewContent('ideas');
+            await window.app.updateStats();
         });
     }
 
-    deleteClient(id) {
+    async deleteClient(id) {
         if (confirm('Are you sure you want to delete this client?')) {
-            window.storageManager.deleteClient(id);
+            await window.storageManager.deleteClient(id);
             this.closeModal();
+            await window.app.loadViewContent('clients');
+            await window.app.updateStats();
         }
     }
 
-    deleteProject(id) {
+    async deleteProject(id) {
         if (confirm('Are you sure you want to delete this project?')) {
-            window.storageManager.deleteProject(id);
+            await window.storageManager.deleteProject(id);
             this.closeModal();
+            await window.app.loadViewContent('projects');
+            await window.app.updateStats();
         }
     }
 
-    deleteWebsite(id) {
+    async deleteWebsite(id) {
         if (confirm('Are you sure you want to delete this website?')) {
-            window.storageManager.deleteWebsite(id);
+            await window.storageManager.deleteWebsite(id);
             this.closeModal();
+            await window.app.loadViewContent('websites');
+            await window.app.updateStats();
         }
     }
 
-    deleteIdea(id) {
+    async deleteIdea(id) {
         if (confirm('Are you sure you want to delete this idea?')) {
-            window.storageManager.deleteIdea(id);
+            await window.storageManager.deleteIdea(id);
             this.closeModal();
+            await window.app.loadViewContent('ideas');
+            await window.app.updateStats();
         }
     }
 }
