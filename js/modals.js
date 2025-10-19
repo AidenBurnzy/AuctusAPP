@@ -684,13 +684,17 @@ class ModalManager {
                     </div>
                     <div class="modal-content">
                         <form id="employee-form">
+                            <div style="background: rgba(108, 99, 255, 0.1); padding: 1rem; border-radius: 8px; margin-bottom: 1rem; font-size: 0.875rem; color: var(--text-secondary);">
+                                <i class="fas fa-info-circle"></i> <strong>Note:</strong> Employee percentages are calculated from the "To Employees" budget allocation pool, not from total net income.
+                            </div>
                             <div class="form-group">
                                 <label>Employee Name *</label>
                                 <input type="text" class="form-input" name="name" value="${employee?.name || ''}" placeholder="e.g., Aiden, Nick" required>
                             </div>
                             <div class="form-group">
-                                <label>Income Percentage *</label>
+                                <label>Income Percentage * (% of Employee Pool)</label>
                                 <input type="number" class="form-input" name="percentage" value="${employee?.percentage || ''}" step="1" min="0" max="100" placeholder="60" required>
+                                <small style="color: var(--text-secondary); font-size: 0.8rem;">This is the percentage of the employee allocation pool, not net income.</small>
                             </div>
                             <div class="form-group">
                                 <label style="display: flex; align-items: center; gap: 0.5rem;">

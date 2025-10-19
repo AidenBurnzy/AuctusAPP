@@ -251,11 +251,20 @@ class ViewManager {
             amount: (netIncome * (parseFloat(a.percentage) || 0)) / 100
         }));
         
-        // Calculate employee income
+        // Find "To Employees" allocation to use as the employee pool
+        const employeeAllocation = allocations.find(a => 
+            a.category.toLowerCase().includes('employee') || 
+            a.category.toLowerCase().includes('payroll')
+        );
+        const employeePool = employeeAllocation 
+            ? (netIncome * (parseFloat(employeeAllocation.percentage) || 0)) / 100 
+            : netIncome; // Fallback to net income if no employee allocation exists
+        
+        // Calculate employee income from the employee pool
         const employeePayroll = employees.map(e => ({
             ...e,
-            monthly: (netIncome * (parseFloat(e.percentage) || 0)) / 100,
-            yearly: ((netIncome * (parseFloat(e.percentage) || 0)) / 100) * 12
+            monthly: (employeePool * (parseFloat(e.percentage) || 0)) / 100,
+            yearly: ((employeePool * (parseFloat(e.percentage) || 0)) / 100) * 12
         }));
         
         const container = document.getElementById('finances-view');
@@ -363,6 +372,13 @@ class ViewManager {
                         <i class="fas fa-plus"></i> Add Employee
                     </button>
                 </div>
+                ${employeeAllocation ? `
+                <div style="background: rgba(108, 99, 255, 0.1); padding: 0.75rem; border-radius: 8px; margin-bottom: 1rem; font-size: 0.875rem;">
+                    <i class="fas fa-info-circle"></i> Employee Pool: <strong style="color: #6C63FF;">$${employeePool.toFixed(2)}</strong> 
+                    (${parseFloat(employeeAllocation.percentage).toFixed(0)}% of Net Income)
+                    <br><span style="color: var(--text-secondary); font-size: 0.8rem;">Employee percentages are calculated from this pool amount.</span>
+                </div>
+                ` : ''}
                 <div class="finance-table">
                     <div class="table-header">
                         <div class="table-col">Employee Name</div>
