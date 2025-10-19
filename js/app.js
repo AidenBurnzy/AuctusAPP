@@ -286,12 +286,27 @@ class AuctusApp {
         let isDragging = false;
         let startedInContent = false;
 
+        // Prevent all touch events on the entire drawer from reaching the body
+        drawer.addEventListener('touchstart', (e) => {
+            e.stopPropagation();
+        }, { passive: false });
+
+        drawer.addEventListener('touchmove', (e) => {
+            e.stopPropagation();
+        }, { passive: false });
+
+        drawer.addEventListener('touchend', (e) => {
+            e.stopPropagation();
+        }, { passive: false });
+
         // Override open/close to prevent body scroll
         const originalOpenDrawer = this.openNavDrawer.bind(this);
         this.openNavDrawer = () => {
             originalOpenDrawer();
             document.body.style.overflow = 'hidden';
             document.body.style.touchAction = 'none';
+            document.body.style.position = 'fixed';
+            document.body.style.width = '100%';
         };
 
         const originalCloseDrawer = this.closeNavDrawer.bind(this);
@@ -299,12 +314,16 @@ class AuctusApp {
             originalCloseDrawer();
             document.body.style.overflow = '';
             document.body.style.touchAction = '';
+            document.body.style.position = '';
+            document.body.style.width = '';
             drawer.style.transform = '';
             drawer.style.transition = '';
         };
 
         // Handle area (top part of drawer)
         drawerHandle.addEventListener('touchstart', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
             touchStartY = e.touches[0].clientY;
             currentY = touchStartY;
             isDragging = true;
@@ -315,6 +334,7 @@ class AuctusApp {
             if (!isDragging) return;
             
             e.preventDefault();
+            e.stopPropagation();
             currentY = e.touches[0].clientY;
             const deltaY = currentY - touchStartY;
             
@@ -327,6 +347,8 @@ class AuctusApp {
         drawerHandle.addEventListener('touchend', (e) => {
             if (!isDragging) return;
             
+            e.preventDefault();
+            e.stopPropagation();
             const deltaY = currentY - touchStartY;
             drawer.style.transition = 'transform 0.3s cubic-bezier(0.4, 0, 0.2, 1)';
             
