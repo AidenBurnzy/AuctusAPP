@@ -26,6 +26,7 @@ async function initializeAuth0() {
                 redirect_uri: 'https://auctusapp.netlify.app/signup.html',
                 audience: window.AUTH0_AUDIENCE || undefined
             },
+            useRefreshTokens: true,
             cacheLocation: 'localstorage'
         });
 
