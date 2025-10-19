@@ -1,0 +1,82 @@
+const { Client } = require('pg');
+
+const headers = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Headers': 'Content-Type',
+  'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
+  'Content-Type': 'application/json'
+};
+
+exports.handler = async (event) => {
+  if (event.httpMethod === 'OPTIONS') {
+    return { statusCode: 200, headers, body: '' };
+  }
+
+  const client = new Client({
+    connectionString: process.env.NEON_DATABASE_URL,
+    ssl: { rejectUnauthorized: false }
+  });
+
+  try {
+    await client.connect();
+
+    if (event.httpMethod === 'GET') {
+      const result = await client.query('SELECT * FROM clients ORDER BY created_at DESC');
+      return {
+        statusCode: 200,
+        headers,
+        body: JSON.stringify(result.rows)
+      };
+    }
+
+    if (event.httpMethod === 'POST') {
+      const { name, email, phone, company, type, notes } = JSON.parse(event.body);
+      const result = await client.query(
+        'INSERT INTO clients (name, email, phone, company, type, notes) VALUES ($1, $2, $3, $4, $5, $6) RETURNING *',
+        [name, email, phone, company, type || 'potential', notes]
+      );
+      return {
+        statusCode: 201,
+        headers,
+        body: JSON.stringify(result.rows[0])
+      };
+    }
+
+    if (event.httpMethod === 'PUT') {
+      const { id, name, email, phone, company, type, notes } = JSON.parse(event.body);
+      const result = await client.query(
+        'UPDATE clients SET name=$1, email=$2, phone=$3, company=$4, type=$5, notes=$6, updated_at=NOW() WHERE id=$7 RETURNING *',
+        [name, email, phone, company, type, notes, id]
+      );
+      return {
+        statusCode: 200,
+        headers,
+        body: JSON.stringify(result.rows[0])
+      };
+    }
+
+    if (event.httpMethod === 'DELETE') {
+      const { id } = JSON.parse(event.body);
+      await client.query('DELETE FROM clients WHERE id=$1', [id]);
+      return {
+        statusCode: 200,
+        headers,
+        body: JSON.stringify({ success: true })
+      };
+    }
+
+    return {
+      statusCode: 405,
+      headers,
+      body: JSON.stringify({ error: 'Method not allowed' })
+    };
+  } catch (error) {
+    return {
+      statusCode: 500,
+      headers,
+      body: JSON.stringify({ error: error.message })
+    };
+  } finally {
+    await client.end();
+  }
+};

@@ -1,0 +1,5 @@
+# Netlify Functions - don't redirect these
+/.netlify/functions/* /.netlify/functions/:splat 200
+
+# Everything else can be served normally
+/* /:splat 200
