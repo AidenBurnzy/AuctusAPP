@@ -36,7 +36,19 @@ exports.handler = async (event) => {
   try {
     if (event.httpMethod === 'POST') {
       // Create or update user
-      const { auth0_id, email, firstName, lastName, phone, role, picture } = JSON.parse(event.body);
+      const body = JSON.parse(event.body);
+      console.log('Received user data:', JSON.stringify(body, null, 2));
+      
+      const { auth0_id, email, firstName, lastName, phone, role, picture } = body;
+      
+      if (!auth0_id || !email) {
+        console.error('Missing required fields:', { auth0_id, email });
+        return {
+          statusCode: 400,
+          headers,
+          body: JSON.stringify({ error: 'Missing required fields: auth0_id and email are required' })
+        };
+      }
       
       const query = `
         INSERT INTO users (auth0_id, email, first_name, last_name, phone, role, picture)
@@ -52,7 +64,9 @@ exports.handler = async (event) => {
         RETURNING *
       `;
       
+      console.log('Executing query with params:', [auth0_id, email, firstName, lastName, phone, role || 'user', picture]);
       const result = await client.query(query, [auth0_id, email, firstName, lastName, phone, role || 'user', picture]);
+      console.log('Query successful, user created/updated:', result.rows[0]);
       
       return {
         statusCode: 200,
@@ -61,8 +75,29 @@ exports.handler = async (event) => {
       };
     } else if (event.httpMethod === 'GET') {
       // Get user profile
-      const auth0_id = event.queryStringParameters.auth0_id;
+      const auth0_id = event.queryStringParameters?.auth0_id;
+      
+      if (!auth0_id) {
+        console.error('Missing auth0_id parameter');
+        return {
+          statusCode: 400,
+          headers,
+          body: JSON.stringify({ error: 'Missing required parameter: auth0_id' })
+        };
+      }
+      
+      console.log('Fetching user profile for:', auth0_id);
       const result = await client.query('SELECT * FROM users WHERE auth0_id = $1', [auth0_id]);
+      console.log('User profile query result:', result.rows[0]);
+      
+      if (!result.rows[0]) {
+        console.warn('User not found:', auth0_id);
+        return {
+          statusCode: 404,
+          headers,
+          body: JSON.stringify({ error: 'User not found' })
+        };
+      }
       
       return {
         statusCode: 200,
@@ -78,10 +113,20 @@ exports.handler = async (event) => {
     }
   } catch (error) {
     console.error('Database error:', error);
+    console.error('Error stack:', error.stack);
+    console.error('Error details:', {
+      message: error.message,
+      code: error.code,
+      detail: error.detail
+    });
     return {
       statusCode: 500,
       headers,
-      body: JSON.stringify({ error: error.message })
+      body: JSON.stringify({ 
+        error: 'Database operation failed', 
+        message: error.message,
+        code: error.code 
+      })
     };
   } finally {
     await client.end();
