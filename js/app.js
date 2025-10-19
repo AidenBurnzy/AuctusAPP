@@ -194,6 +194,9 @@ class AuctusApp {
             this.closeNavDrawer();
         });
 
+        // Add swipe gesture support for drawer
+        this.setupDrawerSwipe();
+
         // Settings button
         document.getElementById('settings-btn').addEventListener('click', () => {
             this.switchView('settings');
@@ -247,6 +250,67 @@ class AuctusApp {
         document.getElementById('nav-drawer').classList.remove('open');
         document.getElementById('nav-drawer-backdrop').classList.remove('active');
         document.getElementById('floating-menu-btn').classList.remove('hidden');
+    }
+
+    setupDrawerSwipe() {
+        const drawer = document.getElementById('nav-drawer');
+        const drawerContent = document.getElementById('nav-drawer-content');
+        let touchStartY = 0;
+        let touchEndY = 0;
+        let isDragging = false;
+
+        drawer.addEventListener('touchstart', (e) => {
+            // Only start tracking if touch is on the drawer handle area (top 60px)
+            const touch = e.touches[0];
+            const rect = drawer.getBoundingClientRect();
+            const touchY = touch.clientY - rect.top;
+            
+            if (touchY < 60) { // Handle area
+                touchStartY = touch.clientY;
+                isDragging = true;
+            }
+        }, { passive: true });
+
+        drawer.addEventListener('touchmove', (e) => {
+            if (!isDragging) return;
+            
+            const touch = e.touches[0];
+            const deltaY = touch.clientY - touchStartY;
+            
+            // Only prevent scroll if dragging down
+            if (deltaY > 0) {
+                e.preventDefault();
+            }
+        }, { passive: false });
+
+        drawer.addEventListener('touchend', (e) => {
+            if (!isDragging) return;
+            
+            touchEndY = e.changedTouches[0].clientY;
+            const swipeDistance = touchEndY - touchStartY;
+            
+            // If swiped down more than 50px, close the drawer
+            if (swipeDistance > 50) {
+                this.closeNavDrawer();
+            }
+            
+            isDragging = false;
+        }, { passive: true });
+
+        // Prevent scrolling on drawer content when at top and trying to pull down
+        drawerContent.addEventListener('touchstart', (e) => {
+            touchStartY = e.touches[0].clientY;
+        }, { passive: true });
+
+        drawerContent.addEventListener('touchmove', (e) => {
+            const touch = e.touches[0];
+            const deltaY = touch.clientY - touchStartY;
+            
+            // If at top of scroll and pulling down, prevent default to allow drawer swipe
+            if (drawerContent.scrollTop === 0 && deltaY > 0) {
+                e.preventDefault();
+            }
+        }, { passive: false });
     }
 
     async loadViewContent(viewName) {
