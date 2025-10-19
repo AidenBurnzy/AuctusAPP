@@ -274,7 +274,57 @@ body {
     background: var(--border-color);
 }
 
-/* Floating Menu Button */
+/* Desktop Bottom Navigation */
+.bottom-nav.desktop-nav {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    background: var(--card-bg);
+    display: flex;
+    justify-content: space-around;
+    padding: 0.75rem 1rem;
+    padding-bottom: calc(0.75rem + env(safe-area-inset-bottom));
+    box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.2);
+    z-index: 100;
+    border-top: 1px solid var(--border-color);
+}
+
+.nav-btn {
+    background: none;
+    border: none;
+    color: var(--text-secondary);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.25rem;
+    cursor: pointer;
+    transition: all 0.2s;
+    padding: 0.5rem 1rem;
+    border-radius: 10px;
+    min-width: 70px;
+}
+
+.nav-btn i {
+    font-size: 1.25rem;
+}
+
+.nav-btn span {
+    font-size: 0.75rem;
+    font-weight: 500;
+}
+
+.nav-btn:hover {
+    color: var(--primary-color);
+    background: rgba(108, 99, 255, 0.1);
+}
+
+.nav-btn.active {
+    color: var(--primary-color);
+    background: linear-gradient(135deg, rgba(108, 99, 255, 0.2), rgba(76, 175, 80, 0.2));
+}
+
+/* Floating Menu Button (Mobile Only) */
 .floating-menu-btn {
     position: fixed;
     bottom: 20px;
@@ -292,6 +342,7 @@ body {
     z-index: 99;
     -webkit-transform: translateZ(0);
     transform: translateZ(0);
+    display: none; /* Hidden by default on desktop */
 }
 
 .floating-menu-btn:hover {
@@ -1295,6 +1346,23 @@ body {
 
 /* Responsive adjustments */
 @media (max-width: 768px) {
+    /* Hide desktop bottom nav on mobile */
+    .bottom-nav.desktop-nav {
+        display: none;
+    }
+    
+    /* Show floating menu button on mobile */
+    .floating-menu-btn {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+    
+    /* Adjust app padding for mobile (no bottom nav) */
+    #app {
+        padding-bottom: 0;
+    }
+    
     .role-header h1 {
         font-size: 2rem;
     }
@@ -1311,6 +1379,30 @@ body {
         width: 80px;
         height: 80px;
         font-size: 2.5rem;
+    }
+}
+
+/* Desktop specific styles */
+@media (min-width: 769px) {
+    /* Hide drawer components on desktop */
+    .nav-drawer,
+    .nav-drawer-backdrop {
+        display: none !important;
+    }
+    
+    /* Show bottom nav on desktop */
+    .bottom-nav.desktop-nav {
+        display: flex;
+    }
+    
+    /* Hide floating menu button on desktop */
+    .floating-menu-btn {
+        display: none;
+    }
+    
+    /* Add padding for bottom nav on desktop */
+    #app {
+        padding-bottom: 80px;
     }
 }
 

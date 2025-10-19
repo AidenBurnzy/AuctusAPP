@@ -170,7 +170,7 @@ class AuctusApp {
             logoutBtn.setAttribute('data-listener', 'true');
         }
 
-        // Navigation items in drawer
+        // Navigation items in drawer (mobile)
         document.querySelectorAll('.nav-item').forEach(btn => {
             btn.addEventListener('click', (e) => {
                 const view = e.currentTarget.dataset.view;
@@ -178,23 +178,39 @@ class AuctusApp {
             });
         });
 
-        // Floating menu button
-        document.getElementById('floating-menu-btn').addEventListener('click', () => {
-            this.openNavDrawer();
+        // Navigation buttons in bottom nav (desktop)
+        document.querySelectorAll('.nav-btn').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                const view = e.currentTarget.dataset.view;
+                this.switchView(view);
+            });
         });
 
+        // Floating menu button (mobile only)
+        const floatingBtn = document.getElementById('floating-menu-btn');
+        if (floatingBtn) {
+            floatingBtn.addEventListener('click', () => {
+                this.openNavDrawer();
+            });
+        }
+
         // Drawer backdrop
-        document.getElementById('nav-drawer-backdrop').addEventListener('click', () => {
-            this.closeNavDrawer();
-        });
+        const backdrop = document.getElementById('nav-drawer-backdrop');
+        if (backdrop) {
+            backdrop.addEventListener('click', () => {
+                this.closeNavDrawer();
+            });
+        }
 
         // Drawer handle for swipe
         const drawerHandle = document.getElementById('nav-drawer-handle');
-        drawerHandle.addEventListener('click', () => {
-            this.closeNavDrawer();
-        });
+        if (drawerHandle) {
+            drawerHandle.addEventListener('click', () => {
+                this.closeNavDrawer();
+            });
+        }
 
-        // Add swipe gesture support for drawer
+        // Add swipe gesture support for drawer (mobile only)
         this.setupDrawerSwipe();
 
         // Settings button
@@ -212,16 +228,20 @@ class AuctusApp {
     }
 
     switchView(viewName) {
-        // Update navigation items
+        // Update navigation items in drawer (mobile)
         document.querySelectorAll('.nav-item').forEach(btn => {
             btn.classList.remove('active');
         });
         
-        // Only update nav item if it exists
-        const navItem = document.querySelector(`[data-view="${viewName}"]`);
-        if (navItem) {
-            navItem.classList.add('active');
-        }
+        // Update navigation buttons in bottom nav (desktop)
+        document.querySelectorAll('.nav-btn').forEach(btn => {
+            btn.classList.remove('active');
+        });
+        
+        // Set active on both nav systems
+        document.querySelectorAll(`[data-view="${viewName}"]`).forEach(btn => {
+            btn.classList.add('active');
+        });
 
         // Update views
         document.querySelectorAll('.view').forEach(view => {
@@ -233,7 +253,7 @@ class AuctusApp {
 
         this.currentView = viewName;
 
-        // Close drawer after selection
+        // Close drawer after selection (mobile only)
         this.closeNavDrawer();
 
         // Load view content
@@ -255,6 +275,10 @@ class AuctusApp {
     setupDrawerSwipe() {
         const drawer = document.getElementById('nav-drawer');
         const drawerContent = document.getElementById('nav-drawer-content');
+        
+        // Exit if elements don't exist (desktop)
+        if (!drawer || !drawerContent) return;
+        
         let touchStartY = 0;
         let touchEndY = 0;
         let isDragging = false;
