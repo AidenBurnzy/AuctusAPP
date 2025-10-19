@@ -2,24 +2,155 @@
 class AuctusApp {
     constructor() {
         this.currentView = 'dashboard';
+        this.isAuthenticated = false;
+        this.userRole = null; // 'admin' or 'employee'
+        this.adminPassword = '0000'; // Simple password for now
         this.init();
     }
 
     init() {
-        // Hide loading screen after delay
+        // Hide loading screen and show role selection
         setTimeout(() => {
             document.getElementById('loading-screen').style.display = 'none';
-            document.getElementById('app').style.display = 'flex';
-            this.setupEventListeners();
-            this.updateStats();
+            
+            // Check if user is already authenticated
+            const savedAuth = localStorage.getItem('auctus_auth');
+            if (savedAuth) {
+                const authData = JSON.parse(savedAuth);
+                this.isAuthenticated = authData.isAuthenticated;
+                this.userRole = authData.role;
+                
+                if (this.isAuthenticated && this.userRole === 'admin') {
+                    this.showAdminPanel();
+                } else if (this.isAuthenticated && this.userRole === 'employee') {
+                    this.showEmployeePortal();
+                } else {
+                    this.showRoleSelection();
+                }
+            } else {
+                this.showRoleSelection();
+            }
         }, 1500);
+    }
+
+    showRoleSelection() {
+        document.getElementById('role-selection').style.display = 'flex';
+        document.getElementById('app').style.display = 'none';
+        document.getElementById('employee-portal').style.display = 'none';
+    }
+
+    showAdminLogin() {
+        const modal = document.getElementById('admin-login-modal');
+        modal.style.display = 'flex';
+        document.getElementById('admin-password').value = '';
+        document.getElementById('password-error').style.display = 'none';
+        
+        // Focus password input
+        setTimeout(() => {
+            document.getElementById('admin-password').focus();
+        }, 100);
+    }
+
+    closeAdminLogin() {
+        document.getElementById('admin-login-modal').style.display = 'none';
+    }
+
+    checkAdminPassword(password) {
+        if (password === this.adminPassword) {
+            this.isAuthenticated = true;
+            this.userRole = 'admin';
+            
+            // Save auth state
+            localStorage.setItem('auctus_auth', JSON.stringify({
+                isAuthenticated: true,
+                role: 'admin'
+            }));
+            
+            this.closeAdminLogin();
+            this.showAdminPanel();
+            return true;
+        } else {
+            document.getElementById('password-error').style.display = 'block';
+            document.getElementById('admin-password').value = '';
+            document.getElementById('admin-password').focus();
+            return false;
+        }
+    }
+
+    showAdminPanel() {
+        document.getElementById('role-selection').style.display = 'none';
+        document.getElementById('employee-portal').style.display = 'none';
+        document.getElementById('app').style.display = 'flex';
+        this.setupEventListeners();
+        this.updateStats();
+    }
+
+    enterEmployeeMode() {
+        this.isAuthenticated = true;
+        this.userRole = 'employee';
+        
+        // Save auth state
+        localStorage.setItem('auctus_auth', JSON.stringify({
+            isAuthenticated: true,
+            role: 'employee'
+        }));
+        
+        this.showEmployeePortal();
+    }
+
+    showEmployeePortal() {
+        document.getElementById('role-selection').style.display = 'none';
+        document.getElementById('app').style.display = 'none';
+        document.getElementById('employee-portal').style.display = 'flex';
+        
+        // Setup employee logout
+        document.getElementById('employee-logout-btn').addEventListener('click', () => {
+            this.logout();
+        });
+    }
+
+    logout() {
+        this.isAuthenticated = false;
+        this.userRole = null;
+        localStorage.removeItem('auctus_auth');
+        
+        // Hide all views
+        document.getElementById('app').style.display = 'none';
+        document.getElementById('employee-portal').style.display = 'none';
+        
+        // Show role selection
+        this.showRoleSelection();
     }
 
     setupEventListeners() {
         // Logo home button
-        document.getElementById('logo-home').addEventListener('click', () => {
-            this.switchView('dashboard');
-        });
+        const logoHome = document.getElementById('logo-home');
+        if (logoHome && !logoHome.hasAttribute('data-listener')) {
+            logoHome.addEventListener('click', () => {
+                this.switchView('dashboard');
+            });
+            logoHome.setAttribute('data-listener', 'true');
+        }
+
+        // Logout button
+        const logoutBtn = document.getElementById('logout-btn');
+        if (logoutBtn && !logoutBtn.hasAttribute('data-listener')) {
+            logoutBtn.addEventListener('click', () => {
+                this.logout();
+            });
+            logoutBtn.setAttribute('data-listener', 'true');
+        }
+
+        // Admin login form
+        const loginForm = document.getElementById('admin-login-form');
+        if (loginForm && !loginForm.hasAttribute('data-listener')) {
+            loginForm.addEventListener('submit', (e) => {
+                e.preventDefault();
+                const password = document.getElementById('admin-password').value;
+                this.checkAdminPassword(password);
+            });
+            loginForm.setAttribute('data-listener', 'true');
+        }
 
         // Navigation buttons
         document.querySelectorAll('.nav-btn').forEach(btn => {

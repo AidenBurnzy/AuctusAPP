@@ -886,3 +886,198 @@ body {
     font-size: 0.875rem;
 }
 
+/* Role Selection Screen */
+#role-selection {
+    width: 100%;
+    min-height: 100vh;
+    background: linear-gradient(135deg, #1a1a2e 0%, #252541 100%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 2rem;
+}
+
+.role-selection-container {
+    width: 100%;
+    max-width: 900px;
+}
+
+.role-header {
+    text-align: center;
+    margin-bottom: 3rem;
+}
+
+.role-header h1 {
+    font-size: 2.5rem;
+    font-weight: 700;
+    background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    margin-bottom: 0.5rem;
+}
+
+.role-header p {
+    font-size: 1.125rem;
+    color: var(--text-secondary);
+}
+
+.role-cards {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 2rem;
+    margin-top: 2rem;
+}
+
+.role-card {
+    background: var(--card-bg);
+    border-radius: 20px;
+    padding: 2.5rem 2rem;
+    text-align: center;
+    transition: all 0.3s ease;
+    border: 2px solid transparent;
+}
+
+.role-card:hover {
+    transform: translateY(-10px);
+    border-color: var(--primary-color);
+    box-shadow: 0 12px 40px rgba(108, 99, 255, 0.3);
+}
+
+.role-icon {
+    width: 100px;
+    height: 100px;
+    margin: 0 auto 1.5rem;
+    background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 3rem;
+    color: white;
+}
+
+.role-card h2 {
+    font-size: 1.75rem;
+    margin-bottom: 0.75rem;
+    color: var(--text-primary);
+}
+
+.role-card p {
+    font-size: 1rem;
+    color: var(--text-secondary);
+    margin-bottom: 2rem;
+    line-height: 1.6;
+}
+
+.role-btn {
+    width: 100%;
+    padding: 1rem 1.5rem;
+    background: var(--primary-color);
+    color: white;
+    border: none;
+    border-radius: 12px;
+    font-size: 1rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+}
+
+.role-btn:hover {
+    background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+    transform: scale(1.05);
+    box-shadow: 0 8px 24px rgba(108, 99, 255, 0.4);
+}
+
+.role-btn i {
+    font-size: 1.125rem;
+}
+
+/* Header Badges */
+.header-actions {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+.admin-badge,
+.employee-badge {
+    padding: 0.5rem 1rem;
+    background: rgba(108, 99, 255, 0.2);
+    border: 1px solid var(--primary-color);
+    border-radius: 20px;
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: var(--primary-color);
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.employee-badge {
+    background: rgba(76, 175, 80, 0.2);
+    border-color: var(--secondary-color);
+    color: var(--secondary-color);
+}
+
+/* Empty State for Employee Portal */
+.empty-state {
+    text-align: center;
+    padding: 4rem 2rem;
+}
+
+.empty-state h3 {
+    font-size: 1.5rem;
+    margin: 1.5rem 0 1rem;
+    color: var(--text-primary);
+}
+
+.empty-state p {
+    color: var(--text-secondary);
+    margin-bottom: 1.5rem;
+}
+
+.empty-state ul {
+    list-style: none;
+    padding: 0;
+}
+
+.empty-state ul li {
+    padding: 0.75rem;
+    background: var(--card-bg);
+    margin: 0.5rem 0;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+}
+
+.empty-state ul li i {
+    color: var(--primary-color);
+    font-size: 1.25rem;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+    .role-header h1 {
+        font-size: 2rem;
+    }
+    
+    .role-cards {
+        grid-template-columns: 1fr;
+    }
+    
+    .role-card {
+        padding: 2rem 1.5rem;
+    }
+    
+    .role-icon {
+        width: 80px;
+        height: 80px;
+        font-size: 2.5rem;
+    }
+}
+

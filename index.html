@@ -11,7 +11,7 @@
     <title>Auctus Ventures</title>
     <link rel="manifest" href="manifest.json">
     <link rel="apple-touch-icon" href="icons/icon-192.png">
-    <link rel="stylesheet" href="css/styles.css?v=20251019-12">
+    <link rel="stylesheet" href="css/styles.css?v=20251019-13">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 </head>
 <body>
@@ -23,14 +23,78 @@
         </div>
     </div>
 
-    <!-- Main App Container -->
+    <!-- Role Selection Screen -->
+    <div id="role-selection" style="display: none;">
+        <div class="role-selection-container">
+            <div class="role-header">
+                <h1>AUCTUS VENTURES</h1>
+                <p>Select Your Access Level</p>
+            </div>
+            
+            <div class="role-cards">
+                <div class="role-card" id="admin-card">
+                    <div class="role-icon">
+                        <i class="fas fa-user-shield"></i>
+                    </div>
+                    <h2>Admin / Owner</h2>
+                    <p>Full access to business management, finances, and settings</p>
+                    <button class="role-btn" onclick="window.app.showAdminLogin()">
+                        <i class="fas fa-lock"></i> Access Admin Panel
+                    </button>
+                </div>
+                
+                <div class="role-card" id="employee-card">
+                    <div class="role-icon">
+                        <i class="fas fa-user"></i>
+                    </div>
+                    <h2>Employee</h2>
+                    <p>View your schedule, tasks, and payroll information</p>
+                    <button class="role-btn" onclick="window.app.enterEmployeeMode()">
+                        <i class="fas fa-arrow-right"></i> Employee Portal
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Admin Login Modal -->
+    <div id="admin-login-modal" class="modal" style="display: none;">
+        <div class="modal-content" style="max-width: 400px;">
+            <div class="modal-header">
+                <h3><i class="fas fa-lock"></i> Admin Access</h3>
+            </div>
+            <div class="modal-body">
+                <form id="admin-login-form">
+                    <div class="form-group">
+                        <label>Enter Admin Password</label>
+                        <input type="password" id="admin-password" class="form-input" placeholder="Enter password" autocomplete="off" required>
+                        <small style="color: var(--error-color); display: none;" id="password-error">Incorrect password. Please try again.</small>
+                    </div>
+                    <div class="form-actions">
+                        <button type="button" class="btn btn-secondary" onclick="window.app.closeAdminLogin()">Cancel</button>
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-sign-in-alt"></i> Login
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main App Container (Admin Panel) -->
     <div id="app" style="display: none;">
         <!-- Header -->
         <header class="app-header">
             <h1 class="logo" id="logo-home" style="cursor: pointer;">Auctus Ventures</h1>
-            <button id="settings-btn" class="icon-btn">
-                <i class="fas fa-cog"></i>
-            </button>
+            <div class="header-actions">
+                <span class="admin-badge"><i class="fas fa-shield-alt"></i> Admin</span>
+                <button id="logout-btn" class="icon-btn" title="Logout">
+                    <i class="fas fa-sign-out-alt"></i>
+                </button>
+                <button id="settings-btn" class="icon-btn">
+                    <i class="fas fa-cog"></i>
+                </button>
+            </div>
         </header>
 
         <!-- Main Content -->
@@ -149,14 +213,48 @@
         </nav>
     </div>
 
+    <!-- Employee Portal -->
+    <div id="employee-portal" style="display: none;">
+        <header class="app-header">
+            <h1 class="logo">Auctus Ventures</h1>
+            <div class="header-actions">
+                <span class="employee-badge"><i class="fas fa-user"></i> Employee</span>
+                <button id="employee-logout-btn" class="icon-btn" title="Back to Home">
+                    <i class="fas fa-sign-out-alt"></i>
+                </button>
+            </div>
+        </header>
+
+        <main class="main-content">
+            <div class="view active">
+                <div class="view-header">
+                    <h2><i class="fas fa-user"></i> Employee Portal</h2>
+                </div>
+                
+                <div class="empty-state">
+                    <i class="fas fa-hard-hat" style="font-size: 4rem; color: var(--primary-color); opacity: 0.3;"></i>
+                    <h3>Employee Portal Coming Soon</h3>
+                    <p>This section will include:</p>
+                    <ul style="text-align: left; max-width: 400px; margin: 1rem auto;">
+                        <li><i class="fas fa-calendar-check"></i> Schedule & Time Tracking</li>
+                        <li><i class="fas fa-tasks"></i> Assigned Tasks & Projects</li>
+                        <li><i class="fas fa-money-check-alt"></i> Payroll Information</li>
+                        <li><i class="fas fa-file-alt"></i> Company Documents</li>
+                        <li><i class="fas fa-comments"></i> Team Communication</li>
+                    </ul>
+                </div>
+            </div>
+        </main>
+    </div>
+
     <!-- Modal Container -->
     <div id="modal-container"></div>
 
     <!-- Scripts -->
-    <script src="js/storage.js?v=20251019-12"></script>
-    <script src="js/views.js?v=20251019-12"></script>
-    <script src="js/modals.js?v=20251019-12"></script>
-    <script src="js/app.js?v=20251019-12"></script>
+    <script src="js/storage.js?v=20251019-13"></script>
+    <script src="js/views.js?v=20251019-13"></script>
+    <script src="js/modals.js?v=20251019-13"></script>
+    <script src="js/app.js?v=20251019-13"></script>
     
     <!-- Service Worker Registration -->
     <script>
