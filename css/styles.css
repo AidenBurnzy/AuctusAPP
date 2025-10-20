@@ -951,8 +951,10 @@ body {
     background: var(--card-bg);
     border-radius: 20px 20px 0 0;
     width: 100%;
+    max-width: 100vw;
     max-height: 90vh;
     overflow-y: auto;
+    overflow-x: hidden;
     animation: slideUp 0.3s ease-out;
 }
 
@@ -991,6 +993,7 @@ body {
 
 .modal-content {
     padding: 1.5rem;
+    overflow-x: hidden;
 }
 
 /* Form Styles */
@@ -1009,6 +1012,7 @@ body {
 .form-select,
 .form-textarea {
     width: 100%;
+    max-width: 100%;
     background: var(--dark-bg);
     border: 1px solid var(--border-color);
     border-radius: 12px;
@@ -1016,6 +1020,11 @@ body {
     color: var(--text-primary);
     font-size: 1rem;
     font-family: inherit;
+}
+
+input[type="date"] {
+    -webkit-appearance: none;
+    appearance: none;
 }
 
 .form-textarea {
