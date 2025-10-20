@@ -741,6 +741,14 @@ class ModalManager {
         const notes = await window.storageManager.getNotes();
         const note = noteId ? notes.find(n => n.id == noteId) : null;
         const isEdit = !!note;
+        const currentUser = localStorage.getItem('auctus_current_user');
+
+        // Check if user profile is set
+        if (!currentUser && !isEdit) {
+            alert('Please set your user profile in Settings first!');
+            window.app.showView('settings');
+            return;
+        }
 
         this.container.innerHTML = `
             <div class="modal-overlay" onclick="if(event.target === this) window.modalManager.closeModal()">
@@ -767,14 +775,6 @@ class ModalManager {
                                     <option value="low" ${note?.priority === 'low' ? 'selected' : ''}>Low</option>
                                     <option value="medium" ${note?.priority === 'medium' ? 'selected' : ''}>Medium</option>
                                     <option value="high" ${note?.priority === 'high' ? 'selected' : ''}>High</option>
-                                </select>
-                            </div>
-                            <div class="form-group">
-                                <label>Created By</label>
-                                <select class="form-select" name="created_by">
-                                    <option value="Aiden" ${note?.created_by === 'Aiden' ? 'selected' : ''}>Aiden</option>
-                                    <option value="Nick" ${note?.created_by === 'Nick' ? 'selected' : ''}>Nick</option>
-                                    <option value="Both" ${note?.created_by === 'Both' ? 'selected' : ''}>Both</option>
                                 </select>
                             </div>
                             ${isEdit ? `
@@ -804,7 +804,7 @@ class ModalManager {
                 title: formData.get('title'),
                 content: formData.get('content'),
                 priority: formData.get('priority'),
-                created_by: formData.get('created_by'),
+                created_by: isEdit ? note.created_by : currentUser,
                 is_completed: formData.get('is_completed') === 'on'
             };
 
@@ -814,6 +814,10 @@ class ModalManager {
                 await window.storageManager.addNote(noteData);
             }
             await this.closeModal();
+            // Refresh notes view if we're on the notes page
+            if (window.app.currentView === 'notes') {
+                await window.app.showView('notes');
+            }
         });
     }
 
@@ -821,6 +825,10 @@ class ModalManager {
         if (confirm('Are you sure you want to delete this note?')) {
             await window.storageManager.deleteNote(id);
             await this.closeModal();
+            // Refresh notes view if we're on the notes page
+            if (window.app.currentView === 'notes') {
+                await window.app.showView('notes');
+            }
         }
     }
 }

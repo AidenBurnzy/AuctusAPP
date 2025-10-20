@@ -462,6 +462,28 @@ class ViewManager {
                     </div>
                 </div>
 
+                <!-- UI Preferences Section -->
+                <div class="settings-card">
+                    <div class="settings-card-header">
+                        <i class="fas fa-paint-brush"></i>
+                        <h3>UI Preferences</h3>
+                    </div>
+                    <div class="settings-card-body">
+                        <div class="settings-description">Customize your app interface</div>
+                        <div class="settings-item">
+                            <div class="settings-label">
+                                <i class="fas fa-sticky-note"></i> Quick Note Button
+                            </div>
+                            <label class="toggle-switch">
+                                <input type="checkbox" id="quick-note-toggle" 
+                                    ${localStorage.getItem('show_quick_note') !== 'false' ? 'checked' : ''}
+                                    onchange="window.app.toggleQuickNoteButton(this.checked)">
+                                <span class="toggle-slider"></span>
+                            </label>
+                        </div>
+                    </div>
+                </div>
+
                 <!-- Company Info Section -->
                 <div class="settings-card">
                     <div class="settings-card-header">

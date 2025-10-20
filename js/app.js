@@ -112,6 +112,13 @@ class AuctusApp {
         document.getElementById('app').style.display = 'flex';
         this.setupEventListeners();
         this.updateStats();
+        
+        // Initialize quick note button visibility
+        const showQuickNote = localStorage.getItem('show_quick_note') !== 'false';
+        const quickNoteBtn = document.querySelector('.quick-note-btn');
+        if (quickNoteBtn) {
+            quickNoteBtn.style.display = showQuickNote ? 'flex' : 'none';
+        }
     }
 
     enterEmployeeMode() {
@@ -160,6 +167,15 @@ class AuctusApp {
         if (this.currentView === 'notes') {
             window.viewManager.renderNotesView();
         }
+    }
+
+    toggleQuickNoteButton(isVisible) {
+        localStorage.setItem('show_quick_note', isVisible);
+        const quickNoteBtn = document.querySelector('.quick-note-btn');
+        if (quickNoteBtn) {
+            quickNoteBtn.style.display = isVisible ? 'flex' : 'none';
+        }
+        this.showNotification(isVisible ? 'Quick note button shown ✓' : 'Quick note button hidden ✓');
     }
 
     logout() {
