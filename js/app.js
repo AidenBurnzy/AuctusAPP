@@ -213,6 +213,37 @@ class AuctusApp {
         // Add swipe gesture support for drawer (mobile only)
         this.setupDrawerSwipe();
 
+        // Quick Note button
+        const quickNoteBtn = document.getElementById('quick-note-btn');
+        if (quickNoteBtn) {
+            quickNoteBtn.addEventListener('click', () => {
+                this.openQuickNote();
+            });
+        }
+
+        // Quick Note modal close
+        const quickNoteClose = document.getElementById('quick-note-close');
+        const quickNoteOverlay = document.getElementById('quick-note-overlay');
+        if (quickNoteClose) {
+            quickNoteClose.addEventListener('click', () => {
+                this.closeQuickNote();
+            });
+        }
+        if (quickNoteOverlay) {
+            quickNoteOverlay.addEventListener('click', () => {
+                this.closeQuickNote();
+            });
+        }
+
+        // Quick Note form submission
+        const quickNoteForm = document.getElementById('quick-note-form');
+        if (quickNoteForm) {
+            quickNoteForm.addEventListener('submit', async (e) => {
+                e.preventDefault();
+                await this.saveQuickNote();
+            });
+        }
+
         // Settings button
         document.getElementById('settings-btn').addEventListener('click', () => {
             this.switchView('settings');
@@ -270,6 +301,91 @@ class AuctusApp {
         document.getElementById('nav-drawer').classList.remove('open');
         document.getElementById('nav-drawer-backdrop').classList.remove('active');
         document.getElementById('floating-menu-btn').classList.remove('hidden');
+    }
+
+    openQuickNote() {
+        const modal = document.getElementById('quick-note-modal');
+        const input = document.getElementById('quick-note-input');
+        
+        modal.classList.add('active');
+        
+        // Focus input after animation
+        setTimeout(() => {
+            if (input) input.focus();
+        }, 300);
+        
+        // Lock body scroll
+        document.body.style.overflow = 'hidden';
+    }
+
+    closeQuickNote() {
+        const modal = document.getElementById('quick-note-modal');
+        const input = document.getElementById('quick-note-input');
+        
+        modal.classList.remove('active');
+        
+        // Clear input
+        if (input) input.value = '';
+        
+        // Unlock body scroll
+        document.body.style.overflow = '';
+    }
+
+    async saveQuickNote() {
+        const input = document.getElementById('quick-note-input');
+        const content = input.value.trim();
+        
+        if (!content) {
+            alert('Please enter a note!');
+            return;
+        }
+        
+        try {
+            // Get current user (Aiden or Nick - you can make this dynamic later)
+            const currentUser = 'Aiden'; // Default for now
+            
+            // Create note object
+            const note = {
+                title: 'Quick Note',
+                content: content,
+                priority: 'medium',
+                created_by: currentUser
+            };
+            
+            // Save to database
+            await window.storageManager.addNote(note);
+            
+            // Close modal
+            this.closeQuickNote();
+            
+            // Show success feedback
+            this.showNotification('Note saved successfully! 📝');
+            
+            // If currently on notes view, refresh it
+            if (this.currentView === 'notes') {
+                await window.viewManager.renderNotesView();
+            }
+        } catch (error) {
+            console.error('Error saving quick note:', error);
+            alert('Failed to save note. Please try again.');
+        }
+    }
+
+    showNotification(message) {
+        // Create temporary notification
+        const notification = document.createElement('div');
+        notification.className = 'quick-notification';
+        notification.textContent = message;
+        document.body.appendChild(notification);
+        
+        // Trigger animation
+        setTimeout(() => notification.classList.add('show'), 10);
+        
+        // Remove after 3 seconds
+        setTimeout(() => {
+            notification.classList.remove('show');
+            setTimeout(() => notification.remove(), 300);
+        }, 3000);
     }
 
     setupDrawerSwipe() {
