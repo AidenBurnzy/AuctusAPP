@@ -138,6 +138,30 @@ class AuctusApp {
         });
     }
 
+    setCurrentUser(userName) {
+        localStorage.setItem('auctus_current_user', userName);
+        
+        // Update settings display
+        const userDisplay = document.getElementById('current-user-display');
+        if (userDisplay) {
+            userDisplay.textContent = userName;
+        }
+        
+        // Update button states
+        document.querySelectorAll('.user-btn').forEach(btn => {
+            btn.classList.remove('active');
+        });
+        event.target.closest('.user-btn').classList.add('active');
+        
+        // Show success notification
+        this.showNotification(`Profile set to ${userName} ✓`);
+        
+        // If on notes view, refresh it
+        if (this.currentView === 'notes') {
+            window.viewManager.renderNotesView();
+        }
+    }
+
     logout() {
         this.isAuthenticated = false;
         this.userRole = null;
@@ -341,8 +365,15 @@ class AuctusApp {
         }
         
         try {
-            // Get current user (Aiden or Nick - you can make this dynamic later)
-            const currentUser = 'Aiden'; // Default for now
+            // Get current user from profile
+            const currentUser = localStorage.getItem('auctus_current_user') || 'Both';
+            
+            if (!localStorage.getItem('auctus_current_user')) {
+                alert('Please set your profile in Settings first (Aiden or Nick)');
+                this.closeQuickNote();
+                this.switchView('settings');
+                return;
+            }
             
             // Create note object
             const note = {

@@ -1,5 +1,9 @@
 // View Manager - Renders different views
 class ViewManager {
+    getCurrentUser() {
+        return localStorage.getItem('auctus_current_user') || null;
+    }
+
     async renderClientsView() {
         console.log('Rendering clients view...');
         let clients = await window.storageManager.getClients();
@@ -428,6 +432,36 @@ class ViewManager {
             </div>
             
             <div class="settings-grid">
+                <!-- User Profile Section -->
+                <div class="settings-card">
+                    <div class="settings-card-header">
+                        <i class="fas fa-user-circle"></i>
+                        <h3>My Profile</h3>
+                    </div>
+                    <div class="settings-card-body">
+                        <div class="settings-item">
+                            <div class="settings-label">I am:</div>
+                            <div class="settings-value" id="current-user-display">
+                                ${this.getCurrentUser() || 'Not Set'}
+                            </div>
+                        </div>
+                        <div class="settings-info">
+                            <i class="fas fa-info-circle"></i> 
+                            Set who you are on this device. Your notes will be private to you.
+                        </div>
+                        <div class="user-selector">
+                            <button class="user-btn ${this.getCurrentUser() === 'Aiden' ? 'active' : ''}" 
+                                onclick="window.app.setCurrentUser('Aiden')">
+                                <i class="fas fa-user"></i> Aiden
+                            </button>
+                            <button class="user-btn ${this.getCurrentUser() === 'Nick' ? 'active' : ''}" 
+                                onclick="window.app.setCurrentUser('Nick')">
+                                <i class="fas fa-user"></i> Nick
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
                 <!-- Company Info Section -->
                 <div class="settings-card">
                     <div class="settings-card-header">
@@ -615,7 +649,13 @@ class ViewManager {
 
     async renderNotesView() {
         const container = document.getElementById('notes-view');
-        const notes = await window.storageManager.getNotes();
+        const allNotes = await window.storageManager.getNotes();
+        const currentUser = this.getCurrentUser();
+        
+        // Filter notes by current user if set
+        const notes = currentUser 
+            ? (Array.isArray(allNotes) ? allNotes.filter(n => n.created_by === currentUser) : [])
+            : allNotes;
         
         const pendingNotes = Array.isArray(notes) ? notes.filter(n => !n.is_completed) : [];
         const completedNotes = Array.isArray(notes) ? notes.filter(n => n.is_completed) : [];
@@ -627,6 +667,19 @@ class ViewManager {
                     <i class="fas fa-plus"></i> Add Note
                 </button>
             </div>
+            
+            ${currentUser ? `
+                <div class="notes-filter-info">
+                    <i class="fas fa-user-circle"></i> 
+                    Showing notes for: <strong>${currentUser}</strong>
+                    <span class="filter-hint">Other users' notes are hidden. Change in Settings.</span>
+                </div>
+            ` : `
+                <div class="notes-filter-warning">
+                    <i class="fas fa-exclamation-triangle"></i> 
+                    <strong>No user profile set!</strong> Go to Settings to select Aiden or Nick to see only your notes.
+                </div>
+            `}
             
             <div class="notes-section">
                 <h3 class="section-title"><i class="fas fa-tasks"></i> Pending (${pendingNotes.length})</h3>

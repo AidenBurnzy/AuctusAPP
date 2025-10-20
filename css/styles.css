@@ -1188,6 +1188,80 @@ body {
     margin-bottom: 1rem;
 }
 
+.settings-info {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    color: var(--text-secondary);
+    font-size: 0.875rem;
+    margin-bottom: 1rem;
+    padding: 0.75rem;
+    background: rgba(108, 99, 255, 0.05);
+    border-radius: 8px;
+}
+
+.user-selector {
+    display: flex;
+    gap: 1rem;
+    margin-top: 1rem;
+}
+
+.user-btn {
+    flex: 1;
+    padding: 0.875rem 1.5rem;
+    background: var(--card-background);
+    color: var(--text-primary);
+    border: 2px solid var(--border-color);
+    border-radius: 10px;
+    font-size: 0.938rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.user-btn:hover {
+    border-color: var(--primary-color);
+    background: rgba(108, 99, 255, 0.05);
+}
+
+.user-btn.active {
+    background: var(--primary-color);
+    color: white;
+    border-color: var(--primary-color);
+    font-weight: 600;
+}
+
+.notes-filter-info {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.875rem 1rem;
+    background: rgba(59, 130, 246, 0.1);
+    border-left: 3px solid rgba(59, 130, 246, 0.5);
+    border-radius: 8px;
+    margin-bottom: 1.5rem;
+    color: var(--text-primary);
+}
+
+.notes-filter-warning {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.875rem 1rem;
+    background: rgba(251, 191, 36, 0.1);
+    border-left: 3px solid rgba(251, 191, 36, 0.5);
+    border-radius: 8px;
+    margin-bottom: 1.5rem;
+    color: var(--text-primary);
+}
+
+.filter-hint {
+    font-size: 0.813rem;
+    color: var(--text-secondary);
+    display: block;
+    margin-top: 0.25rem;
+}
+
 .settings-item {
     display: flex;
     justify-content: space-between;
