@@ -1,5 +1,4 @@
 const { Client } = require('pg');
-const bcrypt = require('bcryptjs');
 
 const headers = {
   'Access-Control-Allow-Origin': '*',
@@ -21,12 +20,51 @@ exports.handler = async (event) => {
   try {
     await client.connect();
 
-    // GET - Fetch all client portal users (admin only)
+    // GET - Fetch all client portal users or authenticate
     if (event.httpMethod === 'GET') {
+      const params = event.queryStringParameters || {};
+      
+      // Login authentication
+      if (params.username && params.password) {
+        const result = await client.query(`
+          SELECT cpu.*, c.name as client_name, c.company, c.email, c.phone
+          FROM client_portal_users cpu
+          JOIN clients c ON cpu.client_id = c.id
+          WHERE cpu.username = $1 AND cpu.password = $2
+        `, [params.username, params.password]);
+        
+        if (result.rows.length > 0) {
+          // Update last login
+          await client.query(
+            'UPDATE client_portal_users SET last_login = CURRENT_TIMESTAMP WHERE id = $1',
+            [result.rows[0].id]
+          );
+          
+          return {
+            statusCode: 200,
+            headers,
+            body: JSON.stringify({ 
+              success: true, 
+              user: result.rows[0] 
+            })
+          };
+        } else {
+          return {
+            statusCode: 401,
+            headers,
+            body: JSON.stringify({ 
+              success: false, 
+              message: 'Invalid credentials' 
+            })
+          };
+        }
+      }
+      
+      // Get all users (admin view)
       const result = await client.query(`
-        SELECT cpu.*, c.name as client_name, c.company
+        SELECT cpu.*, c.name as client_name, c.company, c.email
         FROM client_portal_users cpu
-        LEFT JOIN clients c ON cpu.client_id = c.id
+        JOIN clients c ON cpu.client_id = c.id
         ORDER BY cpu.created_at DESC
       `);
       return {
@@ -39,17 +77,28 @@ exports.handler = async (event) => {
     // POST - Create new client portal user
     if (event.httpMethod === 'POST') {
       const data = JSON.parse(event.body);
-      const { client_id, username, password, email, full_name } = data;
       
-      // Hash password
-      const password_hash = await bcrypt.hash(password, 10);
+      // Check if client already has portal access
+      const existing = await client.query(
+        'SELECT * FROM client_portal_users WHERE client_id = $1',
+        [data.client_id]
+      );
+      
+      if (existing.rows.length > 0) {
+        return {
+          statusCode: 400,
+          headers,
+          body: JSON.stringify({ 
+            error: 'Client already has portal access' 
+          })
+        };
+      }
       
       const result = await client.query(
-        `INSERT INTO client_portal_users 
-        (client_id, username, password_hash, email, full_name, is_active) 
-        VALUES ($1, $2, $3, $4, $5, true) 
+        `INSERT INTO client_portal_users (client_id, username, password)
+        VALUES ($1, $2, $3)
         RETURNING *`,
-        [client_id, username, password_hash, email, full_name]
+        [data.client_id, data.username, data.password]
       );
       
       return {
@@ -62,28 +111,14 @@ exports.handler = async (event) => {
     // PUT - Update client portal user
     if (event.httpMethod === 'PUT') {
       const data = JSON.parse(event.body);
-      const { id, username, email, full_name, is_active, password } = data;
       
-      let query, params;
-      
-      if (password) {
-        // Update with new password
-        const password_hash = await bcrypt.hash(password, 10);
-        query = `UPDATE client_portal_users 
-                 SET username = $1, email = $2, full_name = $3, is_active = $4, password_hash = $5, updated_at = NOW() 
-                 WHERE id = $6 
-                 RETURNING *`;
-        params = [username, email, full_name, is_active, password_hash, id];
-      } else {
-        // Update without password change
-        query = `UPDATE client_portal_users 
-                 SET username = $1, email = $2, full_name = $3, is_active = $4, updated_at = NOW() 
-                 WHERE id = $5 
-                 RETURNING *`;
-        params = [username, email, full_name, is_active, id];
-      }
-      
-      const result = await client.query(query, params);
+      const result = await client.query(
+        `UPDATE client_portal_users
+        SET username = $1, password = $2
+        WHERE id = $3
+        RETURNING *`,
+        [data.username, data.password, data.id]
+      );
       
       return {
         statusCode: 200,
@@ -92,15 +127,16 @@ exports.handler = async (event) => {
       };
     }
 
-    // DELETE - Delete client portal user
+    // DELETE - Remove client portal user
     if (event.httpMethod === 'DELETE') {
-      const { id } = JSON.parse(event.body);
+      const id = event.queryStringParameters?.id;
+      
       await client.query('DELETE FROM client_portal_users WHERE id = $1', [id]);
       
       return {
         statusCode: 200,
         headers,
-        body: JSON.stringify({ message: 'Client portal user deleted successfully' })
+        body: JSON.stringify({ success: true })
       };
     }
 
