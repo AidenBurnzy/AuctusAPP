@@ -4,8 +4,7 @@ class AuctusApp {
         this.currentView = 'dashboard';
         this.isAuthenticated = false;
         this.userRole = null; // 'admin' or 'employee'
-        // NOTE: Admin password is now stored securely via environment variable
-        // DO NOT hardcode passwords in frontend code
+        this.adminPassword = '0000'; // Simple password for now
         this.init();
     }
 
@@ -85,46 +84,24 @@ class AuctusApp {
         document.getElementById('admin-login-modal').style.display = 'none';
     }
 
-    async checkAdminPassword(password) {
-        // Validate against backend authentication service
-        try {
-            const response = await fetch('/.netlify/functions/auth', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ password })
-            });
+    checkAdminPassword(password) {
+        if (password === this.adminPassword) {
+            this.isAuthenticated = true;
+            this.userRole = 'admin';
             
-            const data = await response.json();
+            // Save auth state
+            localStorage.setItem('auctus_auth', JSON.stringify({
+                isAuthenticated: true,
+                role: 'admin'
+            }));
             
-            if (response.ok && data.token) {
-                // Store JWT token for future requests
-                localStorage.setItem('auctus_auth_token', data.token);
-                
-                this.isAuthenticated = true;
-                this.userRole = 'admin';
-                
-                // Save auth state
-                localStorage.setItem('auctus_auth', JSON.stringify({
-                    isAuthenticated: true,
-                    role: 'admin',
-                    timestamp: new Date().toISOString()
-                }));
-                
-                this.closeAdminLogin();
-                this.showAdminPanel();
-                return true;
-            } else {
-                document.getElementById('password-error').style.display = 'block';
-                document.getElementById('password-error').textContent = 'Invalid password. Please try again.';
-                document.getElementById('admin-password').value = '';
-                document.getElementById('admin-password').focus();
-                return false;
-            }
-        } catch (error) {
-            console.error('Authentication error:', error);
+            this.closeAdminLogin();
+            this.showAdminPanel();
+            return true;
+        } else {
             document.getElementById('password-error').style.display = 'block';
-            document.getElementById('password-error').textContent = 'Authentication service error. Please try again.';
             document.getElementById('admin-password').value = '';
+            document.getElementById('admin-password').focus();
             return false;
         }
     }
@@ -626,47 +603,17 @@ class AuctusApp {
             
             const netIncome = grossIncome - subscriptionsCost;
 
-            // Update stat elements and hide skeletons
-            this.updateStatElement('total-clients', Array.isArray(clients) ? clients.length : 0);
-            this.updateStatElement('active-projects', 
-                Array.isArray(projects) ? projects.filter(p => p.status === 'active').length : 0);
-            this.updateStatElement('total-websites', Array.isArray(websites) ? websites.length : 0);
-            this.updateStatElement('total-ideas', Array.isArray(ideas) ? ideas.length : 0);
+            document.getElementById('total-clients').textContent = Array.isArray(clients) ? clients.length : 0;
+            document.getElementById('active-projects').textContent = 
+                Array.isArray(projects) ? projects.filter(p => p.status === 'active').length : 0;
+            document.getElementById('total-websites').textContent = Array.isArray(websites) ? websites.length : 0;
+            document.getElementById('total-ideas').textContent = Array.isArray(ideas) ? ideas.length : 0;
             
-            const balanceValue = `${netIncome >= 0 ? '+' : ''}$${netIncome.toFixed(2)}`;
             const balanceElement = document.getElementById('finance-balance');
-            this.updateStatElement('finance-balance', balanceValue);
+            balanceElement.textContent = `${netIncome >= 0 ? '+' : ''}$${netIncome.toFixed(2)}`;
             balanceElement.style.color = netIncome >= 0 ? '#4CAF50' : '#f44336';
         } catch (error) {
             console.error('Error updating stats:', error);
-        }
-    }
-
-    updateStatElement(elementId, value) {
-        const element = document.getElementById(elementId);
-        const skeletonId = `${elementId}-skeleton`;
-        const skeleton = document.getElementById(skeletonId);
-        
-        if (skeleton) {
-            // Hide skeleton with fade out
-            skeleton.style.opacity = '0';
-            skeleton.style.transition = 'opacity 0.3s ease-out';
-            
-            // Update content after fade
-            setTimeout(() => {
-                element.textContent = value;
-                element.style.opacity = '0';
-                skeleton.remove();
-                
-                // Fade in the actual value
-                setTimeout(() => {
-                    element.style.opacity = '1';
-                    element.style.transition = 'opacity 0.3s ease-in';
-                }, 10);
-            }, 300);
-        } else {
-            // Skeleton already removed, just update the value
-            element.textContent = value;
         }
     }
 }

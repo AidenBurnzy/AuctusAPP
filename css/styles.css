@@ -159,34 +159,6 @@ body {
     }
 }
 
-/* Skeleton Loading Animation */
-@keyframes skeleton-pulse {
-    0% {
-        background-color: var(--border-color);
-        opacity: 0.6;
-    }
-    50% {
-        background-color: rgba(108, 99, 255, 0.2);
-        opacity: 0.4;
-    }
-    100% {
-        background-color: var(--border-color);
-        opacity: 0.6;
-    }
-}
-
-.skeleton {
-    animation: skeleton-pulse 2s infinite ease-in-out;
-    border-radius: 8px;
-    display: inline-block;
-}
-
-.skeleton-text {
-    width: 60px;
-    height: 1.75rem;
-    min-width: 60px;
-}
-
 /* Dashboard */
 .dashboard-header {
     margin-bottom: 2rem;

@@ -1,11 +1,41 @@
 const { Client } = require('pg');
+const { validateToken } = require('./auth-helper');
 
-exports.handler = async () => {
+exports.handler = async (event) => {
   const headers = {
-    'Access-Control-Allow-Origin': '*',
-    'Access-Control-Allow-Headers': 'Content-Type',
+    'Access-Control-Allow-Origin': process.env.ALLOWED_ORIGINS || 'https://auctusventures.netlify.app',
+    'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+    'Access-Control-Allow-Methods': 'POST, OPTIONS',
     'Content-Type': 'application/json'
   };
+
+  // Handle CORS preflight
+  if (event.httpMethod === 'OPTIONS') {
+    return { statusCode: 200, headers, body: '' };
+  }
+
+  // SECURITY: Require authentication to prevent unauthorized access and reconnaissance
+  try {
+    validateToken(event);
+  } catch (error) {
+    return {
+      statusCode: 401,
+      headers,
+      body: JSON.stringify({ error: 'Unauthorized: This endpoint requires authentication' })
+    };
+  }
+
+  // SECURITY: Disable in production via environment variable
+  // Set DB_INIT_ENABLED=false in production once schema is initialized
+  if (process.env.DB_INIT_ENABLED !== 'true') {
+    return {
+      statusCode: 403,
+      headers,
+      body: JSON.stringify({
+        error: 'Database initialization is disabled. Contact your administrator if you need to reinitialize the database.'
+      })
+    };
+  }
 
   // Validate environment variable early
   const connectionString = process.env.NEON_DATABASE_URL;

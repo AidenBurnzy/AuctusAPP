@@ -51,7 +51,7 @@ exports.handler = async (event) => {
       const body = JSON.parse(event.body);
       console.log('Received user data:', JSON.stringify(body, null, 2));
       
-      const { auth0_id, email, firstName, lastName, phone, role, picture } = body;
+      const { auth0_id, email, firstName, lastName, phone, picture } = body;
       
       if (!auth0_id || !email) {
         console.error('Missing required fields:', { auth0_id, email });
@@ -61,6 +61,10 @@ exports.handler = async (event) => {
           body: JSON.stringify({ error: 'Missing required fields: auth0_id and email are required' })
         };
       }
+      
+      // SECURITY: Role is determined server-side, NOT from client input
+      // Default new users to 'user' role - only admins can be promoted via database/admin panel
+      const serverAssignedRole = 'user';
       
       const query = `
         INSERT INTO users (auth0_id, email, first_name, last_name, phone, role, picture)
@@ -76,8 +80,8 @@ exports.handler = async (event) => {
         RETURNING *
       `;
       
-      console.log('Executing query with params:', [auth0_id, email, firstName, lastName, phone, role || 'user', picture]);
-      const result = await client.query(query, [auth0_id, email, firstName, lastName, phone, role || 'user', picture]);
+      console.log('Executing query with params:', [auth0_id, email, firstName, lastName, phone, serverAssignedRole, picture]);
+      const result = await client.query(query, [auth0_id, email, firstName, lastName, phone, serverAssignedRole, picture]);
       console.log('Query successful, user created/updated:', result.rows[0]);
       
       return {

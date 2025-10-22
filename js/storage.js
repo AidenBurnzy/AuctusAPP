@@ -47,16 +47,6 @@ class StorageManager {
                 method,
                 headers: { 'Content-Type': 'application/json' }
             };
-            
-            // Add JWT token to Authorization header if available
-            const token = localStorage.getItem('auctus_auth_token');
-            if (token) {
-                options.headers['Authorization'] = `Bearer ${token}`;
-                console.log('Authorization header set');
-            } else {
-                console.warn('No auth token found in localStorage');
-            }
-            
             if (data) {
                 options.body = JSON.stringify(data);
                 console.log('Request data:', data);
@@ -658,7 +648,7 @@ class StorageManager {
             }
         }
         const notes = await this.getNotes();
-        const index = notes.findIndex(n => n.id === id);
+        const index = notes.findIndex(n => n.id == id);
         if (index !== -1) {
             notes[index] = { ...notes[index], ...updatedNote, updated_at: new Date().toISOString() };
             localStorage.setItem('auctus_notes', JSON.stringify(notes));
@@ -675,13 +665,13 @@ class StorageManager {
             }
         }
         const notes = await this.getNotes();
-        const filtered = notes.filter(n => n.id !== id);
+        const filtered = notes.filter(n => n.id != id);
         localStorage.setItem('auctus_notes', JSON.stringify(filtered));
     }
 
     async toggleNoteComplete(id) {
         const notes = await this.getNotes();
-        const note = notes.find(n => n.id === id);
+        const note = notes.find(n => n.id == id);
         if (note) {
             return await this.updateNote(id, { ...note, is_completed: !note.is_completed });
         }

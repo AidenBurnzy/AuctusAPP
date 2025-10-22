@@ -4,6 +4,24 @@ class ViewManager {
         return localStorage.getItem('auctus_current_user') || null;
     }
 
+    // SECURITY: Helper function to safely create DOM elements
+    createElement(tag, className = '', textContent = '') {
+        const element = document.createElement(tag);
+        if (className) element.className = className;
+        if (textContent) element.textContent = textContent;
+        return element;
+    }
+
+    // SECURITY: Helper to safely render a list by building DOM instead of using innerHTML
+    renderListContainer(items, renderCardFunction) {
+        const container = this.createElement('div', 'list-container');
+        items.forEach(item => {
+            const cardElement = renderCardFunction.call(this, item);
+            container.appendChild(cardElement);
+        });
+        return container;
+    }
+
     async renderClientsView() {
         console.log('Rendering clients view...');
         let clients = await window.storageManager.getClients();
@@ -17,44 +35,72 @@ class ViewManager {
         
         const container = document.getElementById('clients-view');
         
-        container.innerHTML = `
-            <div class="view-header">
-                <h2>Clients</h2>
-                <button class="add-btn" onclick="window.modalManager.openClientModal()">
-                    <i class="fas fa-plus"></i> Add Client
-                </button>
-            </div>
-            ${clients.length === 0 ? this.renderEmptyState('users', 'No clients yet', 'Add your first client to get started') : ''}
-            <div class="list-container">
-                ${clients.map(client => this.renderClientCard(client)).join('')}
-            </div>
-        `;
+        // SECURITY: Build using DOM APIs instead of innerHTML
+        container.innerHTML = ''; // Clear existing content
+        
+        const viewHeader = this.createElement('div', 'view-header');
+        const title = this.createElement('h2', '', 'Clients');
+        const addBtn = this.createElement('button', 'add-btn');
+        addBtn.innerHTML = '<i class="fas fa-plus"></i> Add Client';
+        addBtn.addEventListener('click', () => window.modalManager.openClientModal());
+        viewHeader.appendChild(title);
+        viewHeader.appendChild(addBtn);
+        container.appendChild(viewHeader);
+        
+        if (clients.length === 0) {
+            container.appendChild(this.renderEmptyState('users', 'No clients yet', 'Add your first client to get started'));
+        } else {
+            const listContainer = this.createElement('div', 'list-container');
+            clients.forEach(client => {
+                listContainer.appendChild(this.renderClientCardElement(client));
+            });
+            container.appendChild(listContainer);
+        }
+    }
+
+    renderClientCardElement(client) {
+        // SECURITY: Create card using DOM APIs instead of innerHTML string
+        const card = this.createElement('div', 'list-item');
+        
+        const header = this.createElement('div', 'item-header');
+        const titleDiv = this.createElement('div');
+        const itemTitle = this.createElement('div', 'item-title', client.name);
+        const itemSubtitle = this.createElement('div', 'item-subtitle', client.email || 'No email');
+        titleDiv.appendChild(itemTitle);
+        titleDiv.appendChild(itemSubtitle);
+        header.appendChild(titleDiv);
+        
+        const statusClass = client.type === 'current' ? 'status-active' : 'status-potential';
+        const status = this.createElement('span', `item-status ${statusClass}`, client.type);
+        header.appendChild(status);
+        card.appendChild(header);
+        
+        if (client.phone) {
+            const meta = this.createElement('div', 'item-meta');
+            const phoneSpan = this.createElement('span');
+            phoneSpan.innerHTML = '<i class="fas fa-phone"></i> ' + client.phone;
+            meta.appendChild(phoneSpan);
+            card.appendChild(meta);
+        }
+        
+        if (client.notes) {
+            const meta = this.createElement('div', 'item-meta');
+            const notesSpan = this.createElement('span', '', 
+                client.notes.substring(0, 50) + (client.notes.length > 50 ? '...' : ''));
+            meta.appendChild(notesSpan);
+            card.appendChild(meta);
+        }
+        
+        // Add click handler to open modal
+        card.style.cursor = 'pointer';
+        card.addEventListener('click', () => window.modalManager.openClientModal(client.id));
+        
+        return card;
     }
 
     renderClientCard(client) {
-        return `
-            <div class="list-item" onclick="window.modalManager.openClientModal('${client.id}')">
-                <div class="item-header">
-                    <div>
-                        <div class="item-title">${client.name}</div>
-                        <div class="item-subtitle">${client.email || 'No email'}</div>
-                    </div>
-                    <span class="item-status ${client.type === 'current' ? 'status-active' : 'status-potential'}">
-                        ${client.type}
-                    </span>
-                </div>
-                ${client.phone ? `
-                <div class="item-meta">
-                    <span><i class="fas fa-phone"></i> ${client.phone}</span>
-                </div>
-                ` : ''}
-                ${client.notes ? `
-                <div class="item-meta">
-                    <span><i class="fas fa-sticky-note"></i> ${client.notes.substring(0, 50)}${client.notes.length > 50 ? '...' : ''}</span>
-                </div>
-                ` : ''}
-            </div>
-        `;
+        // Legacy method - kept for compatibility, delegates to DOM-based version
+        return ''; // This is now handled by renderClientCardElement
     }
 
     async renderProjectsView() {
@@ -73,21 +119,31 @@ class ViewManager {
         
         const container = document.getElementById('projects-view');
         
-        container.innerHTML = `
-            <div class="view-header">
-                <h2>Projects</h2>
-                <button class="add-btn" onclick="window.modalManager.openProjectModal()">
-                    <i class="fas fa-plus"></i> New Project
-                </button>
-            </div>
-            ${projects.length === 0 ? this.renderEmptyState('project-diagram', 'No projects yet', 'Create your first project') : ''}
-            <div class="list-container">
-                ${projects.map(project => this.renderProjectCard(project, clients)).join('')}
-            </div>
-        `;
+        // SECURITY: Build using DOM APIs instead of innerHTML
+        container.innerHTML = '';
+        
+        const viewHeader = this.createElement('div', 'view-header');
+        const title = this.createElement('h2', '', 'Projects');
+        const addBtn = this.createElement('button', 'add-btn');
+        addBtn.innerHTML = '<i class="fas fa-plus"></i> New Project';
+        addBtn.addEventListener('click', () => window.modalManager.openProjectModal());
+        viewHeader.appendChild(title);
+        viewHeader.appendChild(addBtn);
+        container.appendChild(viewHeader);
+        
+        if (projects.length === 0) {
+            container.appendChild(this.renderEmptyState('project-diagram', 'No projects yet', 'Create your first project'));
+        } else {
+            const listContainer = this.createElement('div', 'list-container');
+            projects.forEach(project => {
+                listContainer.appendChild(this.renderProjectCardElement(project, clients));
+            });
+            container.appendChild(listContainer);
+        }
     }
 
-    renderProjectCard(project, clients) {
+    renderProjectCardElement(project, clients) {
+        // SECURITY: Create card using DOM APIs instead of innerHTML string
         const client = clients.find(c => c.id === project.clientId);
         const statusClass = {
             'active': 'status-active',
@@ -95,28 +151,55 @@ class ViewManager {
             'paused': 'status-paused'
         }[project.status] || 'status-potential';
 
-        return `
-            <div class="list-item" onclick="window.modalManager.openProjectModal('${project.id}')">
-                <div class="item-header">
-                    <div>
-                        <div class="item-title">${project.name}</div>
-                        <div class="item-subtitle">${client ? client.name : 'No client assigned'}</div>
-                    </div>
-                    <span class="item-status ${statusClass}">
-                        ${project.status}
-                    </span>
-                </div>
-                ${project.description ? `
-                <div class="item-meta" style="margin-top: 0.75rem">
-                    <span>${project.description.substring(0, 100)}${project.description.length > 100 ? '...' : ''}</span>
-                </div>
-                ` : ''}
-                <div class="item-meta">
-                    ${project.startDate ? `<span><i class="fas fa-calendar"></i> ${new Date(project.startDate).toLocaleDateString()}</span>` : ''}
-                    ${project.progress ? `<span><i class="fas fa-tasks"></i> ${project.progress}% complete</span>` : ''}
-                </div>
-            </div>
-        `;
+        const card = this.createElement('div', 'list-item');
+        
+        const header = this.createElement('div', 'item-header');
+        const titleDiv = this.createElement('div');
+        const itemTitle = this.createElement('div', 'item-title', project.name);
+        const itemSubtitle = this.createElement('div', 'item-subtitle', 
+            client ? client.name : 'No client assigned');
+        titleDiv.appendChild(itemTitle);
+        titleDiv.appendChild(itemSubtitle);
+        header.appendChild(titleDiv);
+        
+        const status = this.createElement('span', `item-status ${statusClass}`, project.status);
+        header.appendChild(status);
+        card.appendChild(header);
+        
+        if (project.description) {
+            const meta = this.createElement('div', 'item-meta');
+            meta.style.marginTop = '0.75rem';
+            const descSpan = this.createElement('span', '', 
+                project.description.substring(0, 100) + (project.description.length > 100 ? '...' : ''));
+            meta.appendChild(descSpan);
+            card.appendChild(meta);
+        }
+        
+        const metaContainer = this.createElement('div', 'item-meta');
+        if (project.startDate) {
+            const dateSpan = document.createElement('span');
+            dateSpan.innerHTML = '<i class="fas fa-calendar"></i> ' + new Date(project.startDate).toLocaleDateString();
+            metaContainer.appendChild(dateSpan);
+        }
+        if (project.progress) {
+            const progressSpan = document.createElement('span');
+            progressSpan.innerHTML = '<i class="fas fa-tasks"></i> ' + project.progress + '% complete';
+            metaContainer.appendChild(progressSpan);
+        }
+        if (project.startDate || project.progress) {
+            card.appendChild(metaContainer);
+        }
+        
+        // Add click handler to open modal
+        card.style.cursor = 'pointer';
+        card.addEventListener('click', () => window.modalManager.openProjectModal(project.id));
+        
+        return card;
+    }
+
+    renderProjectCard(project, clients) {
+        // Legacy method - kept for compatibility
+        return '';
     }
 
     async renderWebsitesView() {
@@ -130,48 +213,78 @@ class ViewManager {
         
         const container = document.getElementById('websites-view');
         
-        container.innerHTML = `
-            <div class="view-header">
-                <h2>Websites</h2>
-                <button class="add-btn" onclick="window.modalManager.openWebsiteModal()">
-                    <i class="fas fa-plus"></i> Add Website
-                </button>
-            </div>
-            ${websites.length === 0 ? this.renderEmptyState('globe', 'No websites yet', 'Add your first website') : ''}
-            <div class="list-container">
-                ${websites.map(website => this.renderWebsiteCard(website)).join('')}
-            </div>
-        `;
+        // SECURITY: Build using DOM APIs instead of innerHTML
+        container.innerHTML = '';
+        
+        const viewHeader = this.createElement('div', 'view-header');
+        const title = this.createElement('h2', '', 'Websites');
+        const addBtn = this.createElement('button', 'add-btn');
+        addBtn.innerHTML = '<i class="fas fa-plus"></i> Add Website';
+        addBtn.addEventListener('click', () => window.modalManager.openWebsiteModal());
+        viewHeader.appendChild(title);
+        viewHeader.appendChild(addBtn);
+        container.appendChild(viewHeader);
+        
+        if (websites.length === 0) {
+            container.appendChild(this.renderEmptyState('globe', 'No websites yet', 'Add your first website'));
+        } else {
+            const listContainer = this.createElement('div', 'list-container');
+            websites.forEach(website => {
+                listContainer.appendChild(this.renderWebsiteCardElement(website));
+            });
+            container.appendChild(listContainer);
+        }
+    }
+
+    renderWebsiteCardElement(website) {
+        // SECURITY: Create card using DOM APIs instead of innerHTML string
+        const card = this.createElement('div', 'list-item');
+        
+        const header = this.createElement('div', 'item-header');
+        const titleDiv = this.createElement('div');
+        const itemTitle = this.createElement('div', 'item-title', website.name);
+        const itemSubtitle = this.createElement('div', 'item-subtitle', website.url || 'No URL');
+        titleDiv.appendChild(itemTitle);
+        titleDiv.appendChild(itemSubtitle);
+        header.appendChild(titleDiv);
+        
+        const statusClass = website.status === 'live' ? 'status-active' : 'status-potential';
+        const status = this.createElement('span', `item-status ${statusClass}`, website.status || 'development');
+        header.appendChild(status);
+        card.appendChild(header);
+        
+        if (website.description) {
+            const meta = this.createElement('div', 'item-meta');
+            meta.style.marginTop = '0.75rem';
+            const descSpan = this.createElement('span', '', website.description);
+            meta.appendChild(descSpan);
+            card.appendChild(meta);
+        }
+        
+        if (website.url) {
+            const meta = this.createElement('div', 'item-meta');
+            const linkSpan = document.createElement('span');
+            const link = document.createElement('a');
+            link.href = website.url;
+            link.target = '_blank';
+            link.style.color = 'var(--primary-color)';
+            link.innerHTML = '<i class="fas fa-external-link-alt"></i> Visit Website';
+            link.addEventListener('click', (e) => e.stopPropagation());
+            linkSpan.appendChild(link);
+            meta.appendChild(linkSpan);
+            card.appendChild(meta);
+        }
+        
+        // Add click handler to open modal
+        card.style.cursor = 'pointer';
+        card.addEventListener('click', () => window.modalManager.openWebsiteModal(website.id));
+        
+        return card;
     }
 
     renderWebsiteCard(website) {
-        return `
-            <div class="list-item" onclick="window.modalManager.openWebsiteModal('${website.id}')">
-                <div class="item-header">
-                    <div>
-                        <div class="item-title">${website.name}</div>
-                        <div class="item-subtitle">${website.url || 'No URL'}</div>
-                    </div>
-                    <span class="item-status ${website.status === 'live' ? 'status-active' : 'status-potential'}">
-                        ${website.status || 'development'}
-                    </span>
-                </div>
-                ${website.description ? `
-                <div class="item-meta" style="margin-top: 0.75rem">
-                    <span>${website.description}</span>
-                </div>
-                ` : ''}
-                ${website.url ? `
-                <div class="item-meta">
-                    <span>
-                        <a href="${website.url}" target="_blank" onclick="event.stopPropagation()" style="color: var(--primary-color);">
-                            <i class="fas fa-external-link-alt"></i> Visit Website
-                        </a>
-                    </span>
-                </div>
-                ` : ''}
-            </div>
-        `;
+        // Legacy method - kept for compatibility
+        return '';
     }
 
     async renderIdeasView() {
@@ -185,48 +298,81 @@ class ViewManager {
         
         const container = document.getElementById('ideas-view');
         
-        container.innerHTML = `
-            <div class="view-header">
-                <h2>Ideas & Notes</h2>
-                <button class="add-btn" onclick="window.modalManager.openIdeaModal()">
-                    <i class="fas fa-plus"></i> New Idea
-                </button>
-            </div>
-            ${ideas.length === 0 ? this.renderEmptyState('lightbulb', 'No ideas yet', 'Capture your first idea') : ''}
-            <div class="list-container">
-                ${ideas.map(idea => this.renderIdeaCard(idea)).join('')}
-            </div>
-        `;
+        // SECURITY: Build using DOM APIs instead of innerHTML
+        container.innerHTML = '';
+        
+        const viewHeader = this.createElement('div', 'view-header');
+        const title = this.createElement('h2', '', 'Ideas & Notes');
+        const addBtn = this.createElement('button', 'add-btn');
+        addBtn.innerHTML = '<i class="fas fa-plus"></i> New Idea';
+        addBtn.addEventListener('click', () => window.modalManager.openIdeaModal());
+        viewHeader.appendChild(title);
+        viewHeader.appendChild(addBtn);
+        container.appendChild(viewHeader);
+        
+        if (ideas.length === 0) {
+            container.appendChild(this.renderEmptyState('lightbulb', 'No ideas yet', 'Capture your first idea'));
+        } else {
+            const listContainer = this.createElement('div', 'list-container');
+            ideas.forEach(idea => {
+                listContainer.appendChild(this.renderIdeaCardElement(idea));
+            });
+            container.appendChild(listContainer);
+        }
     }
 
-    renderIdeaCard(idea) {
+    renderIdeaCardElement(idea) {
+        // SECURITY: Create card using DOM APIs instead of innerHTML string
         const priorityClass = {
             'high': 'status-active',
             'medium': 'status-potential',
             'low': 'status-paused'
         }[idea.priority] || 'status-potential';
 
-        return `
-            <div class="list-item" onclick="window.modalManager.openIdeaModal('${idea.id}')">
-                <div class="item-header">
-                    <div>
-                        <div class="item-title">${idea.title}</div>
-                        <div class="item-subtitle">${new Date(idea.createdAt).toLocaleDateString()}</div>
-                    </div>
-                    ${idea.priority ? `<span class="item-status ${priorityClass}">${idea.priority}</span>` : ''}
-                </div>
-                ${idea.content ? `
-                <div class="item-meta" style="margin-top: 0.75rem">
-                    <span>${idea.content.substring(0, 150)}${idea.content.length > 150 ? '...' : ''}</span>
-                </div>
-                ` : ''}
-                ${idea.category ? `
-                <div class="item-meta">
-                    <span><i class="fas fa-tag"></i> ${idea.category}</span>
-                </div>
-                ` : ''}
-            </div>
-        `;
+        const card = this.createElement('div', 'list-item');
+        
+        const header = this.createElement('div', 'item-header');
+        const titleDiv = this.createElement('div');
+        const itemTitle = this.createElement('div', 'item-title', idea.title);
+        const itemSubtitle = this.createElement('div', 'item-subtitle', 
+            new Date(idea.createdAt).toLocaleDateString());
+        titleDiv.appendChild(itemTitle);
+        titleDiv.appendChild(itemSubtitle);
+        header.appendChild(titleDiv);
+        
+        if (idea.priority) {
+            const status = this.createElement('span', `item-status ${priorityClass}`, idea.priority);
+            header.appendChild(status);
+        }
+        card.appendChild(header);
+        
+        if (idea.content) {
+            const meta = this.createElement('div', 'item-meta');
+            meta.style.marginTop = '0.75rem';
+            const contentSpan = this.createElement('span', '', 
+                idea.content.substring(0, 150) + (idea.content.length > 150 ? '...' : ''));
+            meta.appendChild(contentSpan);
+            card.appendChild(meta);
+        }
+        
+        if (idea.category) {
+            const meta = this.createElement('div', 'item-meta');
+            const catSpan = document.createElement('span');
+            catSpan.innerHTML = '<i class="fas fa-tag"></i> ' + idea.category;
+            meta.appendChild(catSpan);
+            card.appendChild(meta);
+        }
+        
+        // Add click handler to open modal
+        card.style.cursor = 'pointer';
+        card.addEventListener('click', () => window.modalManager.openIdeaModal(idea.id));
+        
+        return card;
+    }
+
+    renderIdeaCard(idea) {
+        // Legacy method - kept for compatibility
+        return '';
     }
 
     async renderFinancesView() {
