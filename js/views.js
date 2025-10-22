@@ -25,12 +25,16 @@ class ViewManager {
     async renderClientsView() {
         console.log('Rendering clients view...');
         let clients = await window.storageManager.getClients();
+        let websites = await window.storageManager.getWebsites();
         console.log('Clients fetched:', clients, 'Type:', typeof clients, 'Is Array:', Array.isArray(clients));
         
-        // Safety check: ensure clients is always an array
+        // Safety check: ensure clients and websites are always arrays
         if (!Array.isArray(clients)) {
             console.error('Clients is not an array!', clients);
             clients = [];
+        }
+        if (!Array.isArray(websites)) {
+            websites = [];
         }
         
         const container = document.getElementById('clients-view');
@@ -52,14 +56,18 @@ class ViewManager {
         } else {
             const listContainer = this.createElement('div', 'list-container');
             clients.forEach(client => {
-                listContainer.appendChild(this.renderClientCardElement(client));
+                listContainer.appendChild(this.renderClientCardElement(client, websites));
             });
             container.appendChild(listContainer);
         }
     }
 
-    renderClientCardElement(client) {
+    renderClientCardElement(client, websites = []) {
         // SECURITY: Create card using DOM APIs instead of innerHTML string
+        // Handle both camelCase (frontend) and snake_case (database) formats
+        const clientWebsiteId = client.website_id || client.websiteId;
+        const website = clientWebsiteId ? websites.find(w => w.id == clientWebsiteId) : null;
+        
         const card = this.createElement('div', 'list-item');
         
         const header = this.createElement('div', 'item-header');
@@ -75,20 +83,30 @@ class ViewManager {
         header.appendChild(status);
         card.appendChild(header);
         
+        const meta = this.createElement('div', 'item-meta');
+        
+        if (website) {
+            const websiteSpan = document.createElement('span');
+            websiteSpan.innerHTML = '<i class="fas fa-globe"></i> ' + website.name;
+            meta.appendChild(websiteSpan);
+        }
+        
         if (client.phone) {
-            const meta = this.createElement('div', 'item-meta');
-            const phoneSpan = this.createElement('span');
+            const phoneSpan = document.createElement('span');
             phoneSpan.innerHTML = '<i class="fas fa-phone"></i> ' + client.phone;
             meta.appendChild(phoneSpan);
+        }
+        
+        if (meta.children.length > 0) {
             card.appendChild(meta);
         }
         
         if (client.notes) {
-            const meta = this.createElement('div', 'item-meta');
+            const notesMeta = this.createElement('div', 'item-meta');
             const notesSpan = this.createElement('span', '', 
                 client.notes.substring(0, 50) + (client.notes.length > 50 ? '...' : ''));
-            meta.appendChild(notesSpan);
-            card.appendChild(meta);
+            notesMeta.appendChild(notesSpan);
+            card.appendChild(notesMeta);
         }
         
         // Add click handler to open modal

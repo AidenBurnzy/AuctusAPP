@@ -89,6 +89,26 @@ class ModalManager {
         companyInput.value = client?.company || '';
         form.appendChild(createFormGroup('Company', companyInput));
 
+        // Website select
+        const websites = await window.storageManager.getWebsites();
+        const websiteSelect = document.createElement('select');
+        websiteSelect.className = 'form-select';
+        websiteSelect.name = 'website_id';
+        const websiteOption0 = document.createElement('option');
+        websiteOption0.value = '';
+        websiteOption0.textContent = 'No website';
+        websiteSelect.appendChild(websiteOption0);
+        websites.forEach(w => {
+            const opt = document.createElement('option');
+            opt.value = w.id;
+            opt.textContent = w.name;
+            // Handle both camelCase (frontend) and snake_case (database) formats
+            const clientWebsiteId = client?.website_id || client?.websiteId;
+            opt.selected = clientWebsiteId == w.id;
+            websiteSelect.appendChild(opt);
+        });
+        form.appendChild(createFormGroup('Website', websiteSelect));
+
         // Type select
         const typeSelect = document.createElement('select');
         typeSelect.className = 'form-select';
@@ -151,6 +171,13 @@ class ModalManager {
             e.preventDefault();
             const formData = new FormData(e.target);
             const data = Object.fromEntries(formData);
+            
+            // Convert website_id to integer if provided
+            if (data.website_id) {
+                data.website_id = parseInt(data.website_id);
+            } else {
+                data.website_id = null;
+            }
             
             if (isEdit) {
                 await window.storageManager.updateClient(clientId, data);

@@ -65,6 +65,7 @@ exports.handler = async (event) => {
         phone VARCHAR(50),
         company VARCHAR(255),
         type VARCHAR(50) NOT NULL DEFAULT 'potential',
+        website_id INTEGER REFERENCES websites(id) ON DELETE SET NULL,
         notes TEXT,
         created_at TIMESTAMP DEFAULT NOW(),
         updated_at TIMESTAMP DEFAULT NOW()

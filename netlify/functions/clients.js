@@ -42,10 +42,10 @@ exports.handler = async (event) => {
     }
 
     if (event.httpMethod === 'POST') {
-      const { name, email, phone, company, type, notes } = JSON.parse(event.body);
+      const { name, email, phone, company, type, website_id, notes } = JSON.parse(event.body);
       const result = await client.query(
-        'INSERT INTO clients (name, email, phone, company, type, notes) VALUES ($1, $2, $3, $4, $5, $6) RETURNING *',
-        [name, email, phone, company, type || 'potential', notes]
+        'INSERT INTO clients (name, email, phone, company, type, website_id, notes) VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING *',
+        [name, email, phone, company, type || 'potential', website_id || null, notes]
       );
       return {
         statusCode: 201,
@@ -55,10 +55,10 @@ exports.handler = async (event) => {
     }
 
     if (event.httpMethod === 'PUT') {
-      const { id, name, email, phone, company, type, notes } = JSON.parse(event.body);
+      const { id, name, email, phone, company, type, website_id, notes } = JSON.parse(event.body);
       const result = await client.query(
-        'UPDATE clients SET name=$1, email=$2, phone=$3, company=$4, type=$5, notes=$6, updated_at=NOW() WHERE id=$7 RETURNING *',
-        [name, email, phone, company, type, notes, id]
+        'UPDATE clients SET name=$1, email=$2, phone=$3, company=$4, type=$5, website_id=$6, notes=$7, updated_at=NOW() WHERE id=$8 RETURNING *',
+        [name, email, phone, company, type, website_id || null, notes, id]
       );
       return {
         statusCode: 200,
