@@ -144,7 +144,9 @@ class ViewManager {
 
     renderProjectCardElement(project, clients) {
         // SECURITY: Create card using DOM APIs instead of innerHTML string
-        const client = clients.find(c => c.id === project.clientId);
+        // Handle both camelCase (frontend) and snake_case (database) formats
+        const projectClientId = project.clientId || project.client_id;
+        const client = projectClientId ? clients.find(c => c.id == projectClientId) : null;
         const statusClass = {
             'active': 'status-active',
             'completed': 'status-completed',

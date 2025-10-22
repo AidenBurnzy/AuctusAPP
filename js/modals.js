@@ -210,7 +210,9 @@ class ModalManager {
             const opt = document.createElement('option');
             opt.value = c.id;
             opt.textContent = c.name;
-            opt.selected = project?.clientId === c.id;
+            // Handle both camelCase (frontend) and snake_case (database) formats
+            const projectClientId = project?.clientId || project?.client_id;
+            opt.selected = projectClientId == c.id; // Use == for type coercion
             clientSelect.appendChild(opt);
         });
         form.appendChild(createFormGroup('Client', clientSelect));
@@ -293,10 +295,20 @@ class ModalManager {
             const formData = new FormData(e.target);
             const data = Object.fromEntries(formData);
             
+            // Convert camelCase to snake_case for backend API compatibility
+            const apiData = {
+                name: data.name,
+                client_id: data.clientId ? parseInt(data.clientId) : null,
+                status: data.status,
+                progress: parseInt(data.progress) || 0,
+                start_date: data.startDate || null,
+                description: data.description
+            };
+            
             if (isEdit) {
-                await window.storageManager.updateProject(projectId, data);
+                await window.storageManager.updateProject(projectId, apiData);
             } else {
-                await window.storageManager.addProject(data);
+                await window.storageManager.addProject(apiData);
             }
             await this.closeModal();
         });
