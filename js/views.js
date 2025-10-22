@@ -942,7 +942,7 @@ class ViewManager {
     }
 
     async renderClientAccountsView() {
-        const container = document.getElementById('view-container');
+        const container = document.getElementById('client-accounts-view');
         
         try {
             // Fetch all clients
