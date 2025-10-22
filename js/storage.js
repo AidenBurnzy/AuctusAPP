@@ -47,6 +47,13 @@ class StorageManager {
                 method,
                 headers: { 'Content-Type': 'application/json' }
             };
+            
+            // Add JWT token to Authorization header if available
+            const token = localStorage.getItem('auctus_token');
+            if (token) {
+                options.headers['Authorization'] = `Bearer ${token}`;
+            }
+            
             if (data) {
                 options.body = JSON.stringify(data);
                 console.log('Request data:', data);

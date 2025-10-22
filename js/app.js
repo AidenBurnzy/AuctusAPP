@@ -84,22 +84,41 @@ class AuctusApp {
         document.getElementById('admin-login-modal').style.display = 'none';
     }
 
-    checkAdminPassword(password) {
-        if (password === this.adminPassword) {
-            this.isAuthenticated = true;
-            this.userRole = 'admin';
+    async checkAdminPassword(password) {
+        try {
+            // Call the auth endpoint to get JWT token
+            const response = await fetch('/.netlify/functions/auth', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ password })
+            });
+
+            if (!response.ok) {
+                document.getElementById('password-error').style.display = 'block';
+                document.getElementById('admin-password').value = '';
+                document.getElementById('admin-password').focus();
+                return false;
+            }
+
+            const data = await response.json();
             
-            // Save auth state
+            // Save JWT token and auth state
+            localStorage.setItem('auctus_token', data.token);
             localStorage.setItem('auctus_auth', JSON.stringify({
                 isAuthenticated: true,
                 role: 'admin'
             }));
             
+            this.isAuthenticated = true;
+            this.userRole = 'admin';
+            
             this.closeAdminLogin();
             this.showAdminPanel();
             return true;
-        } else {
+        } catch (error) {
+            console.error('Authentication error:', error);
             document.getElementById('password-error').style.display = 'block';
+            document.getElementById('password-error').textContent = 'Authentication failed. Please try again.';
             document.getElementById('admin-password').value = '';
             document.getElementById('admin-password').focus();
             return false;
@@ -182,6 +201,7 @@ class AuctusApp {
         this.isAuthenticated = false;
         this.userRole = null;
         localStorage.removeItem('auctus_auth');
+        localStorage.removeItem('auctus_token');
         
         // Hide all views
         document.getElementById('app').style.display = 'none';
