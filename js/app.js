@@ -802,6 +802,9 @@ class AuctusApp {
             case 'notes':
                 await window.viewManager.renderNotesView();
                 break;
+            case 'client-accounts':
+                await window.viewManager.renderClientAccountsView();
+                break;
             case 'settings':
                 await window.viewManager.renderSettingsView();
                 break;
