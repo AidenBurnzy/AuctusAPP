@@ -127,7 +127,7 @@ class AuctusApp {
 
     showAdminPanel() {
         document.getElementById('role-selection').style.display = 'none';
-        document.getElementById('employee-portal').style.display = 'none';
+        document.getElementById('client-portal').style.display = 'none';
         document.getElementById('app').style.display = 'flex';
         this.setupEventListeners();
         this.updateStats();
