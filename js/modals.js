@@ -14,7 +14,7 @@ class ModalManager {
 
     async openClientModal(clientId = null) {
         const clients = await window.storageManager.getClients();
-        const client = clientId ? clients.find(c => c.id == clientId) : null;
+        const client = clientId ? clients.find(c => c.id === clientId) : null;
         const isEdit = !!client;
 
         this.container.innerHTML = `
@@ -87,7 +87,7 @@ class ModalManager {
 
     async openProjectModal(projectId = null) {
         const projects = await window.storageManager.getProjects();
-        const project = projectId ? projects.find(p => p.id == projectId) : null;
+        const project = projectId ? projects.find(p => p.id === projectId) : null;
         const clients = await window.storageManager.getClients();
         const isEdit = !!project;
 
@@ -165,7 +165,7 @@ class ModalManager {
 
     async openWebsiteModal(websiteId = null) {
         const websites = await window.storageManager.getWebsites();
-        const website = websiteId ? websites.find(w => w.id == websiteId) : null;
+        const website = websiteId ? websites.find(w => w.id === websiteId) : null;
         const isEdit = !!website;
 
         this.container.innerHTML = `
@@ -233,7 +233,7 @@ class ModalManager {
 
     async openIdeaModal(ideaId = null) {
         const ideas = await window.storageManager.getIdeas();
-        const idea = ideaId ? ideas.find(i => i.id == ideaId) : null;
+        const idea = ideaId ? ideas.find(i => i.id === ideaId) : null;
         const isEdit = !!idea;
 
         this.container.innerHTML = `

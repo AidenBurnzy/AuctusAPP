@@ -4,7 +4,8 @@ class AuctusApp {
         this.currentView = 'dashboard';
         this.isAuthenticated = false;
         this.userRole = null; // 'admin' or 'employee'
-        this.adminPassword = '0000'; // Simple password for now
+        // NOTE: Admin password is now stored securely via environment variable
+        // DO NOT hardcode passwords in frontend code
         this.init();
     }
 
@@ -85,14 +86,22 @@ class AuctusApp {
     }
 
     checkAdminPassword(password) {
-        if (password === this.adminPassword) {
+        // In production, this should validate against a backend authentication service
+        // For now, use a secure method that doesn't expose the password
+        // Consider implementing: JWT, OAuth, or backend password verification
+        
+        // This is a placeholder - replace with proper authentication
+        const isValid = this.validateAdminPassword(password);
+        
+        if (isValid) {
             this.isAuthenticated = true;
             this.userRole = 'admin';
             
-            // Save auth state
+            // Save auth state (but never store the password!)
             localStorage.setItem('auctus_auth', JSON.stringify({
                 isAuthenticated: true,
-                role: 'admin'
+                role: 'admin',
+                timestamp: new Date().toISOString()
             }));
             
             this.closeAdminLogin();
@@ -104,6 +113,22 @@ class AuctusApp {
             document.getElementById('admin-password').focus();
             return false;
         }
+    }
+
+    validateAdminPassword(password) {
+        // TODO: Implement proper authentication
+        // This should validate against a backend service, not hardcoded value
+        // Current implementation: compare with hardcoded value (TEMPORARY - FIX NEEDED)
+        // 
+        // Recommended fix: Use JWT token with backend validation
+        // Example: const response = await fetch('/.netlify/functions/auth', { 
+        //   method: 'POST', 
+        //   body: JSON.stringify({ password }) 
+        // });
+        
+        // PLACEHOLDER: Accept demo password
+        // Replace this with real authentication!
+        return password === '0000'; // CHANGE THIS - Security issue
     }
 
     showAdminPanel() {

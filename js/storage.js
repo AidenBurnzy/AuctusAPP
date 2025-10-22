@@ -648,7 +648,7 @@ class StorageManager {
             }
         }
         const notes = await this.getNotes();
-        const index = notes.findIndex(n => n.id == id);
+        const index = notes.findIndex(n => n.id === id);
         if (index !== -1) {
             notes[index] = { ...notes[index], ...updatedNote, updated_at: new Date().toISOString() };
             localStorage.setItem('auctus_notes', JSON.stringify(notes));
@@ -665,13 +665,13 @@ class StorageManager {
             }
         }
         const notes = await this.getNotes();
-        const filtered = notes.filter(n => n.id != id);
+        const filtered = notes.filter(n => n.id !== id);
         localStorage.setItem('auctus_notes', JSON.stringify(filtered));
     }
 
     async toggleNoteComplete(id) {
         const notes = await this.getNotes();
-        const note = notes.find(n => n.id == id);
+        const note = notes.find(n => n.id === id);
         if (note) {
             return await this.updateNote(id, { ...note, is_completed: !note.is_completed });
         }
