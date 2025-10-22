@@ -940,7 +940,173 @@ class ViewManager {
             ` : ''}
         `;
     }
+
+    async renderClientAccountsView() {
+        const container = document.getElementById('view-container');
+        
+        try {
+            // Fetch all clients
+            const clients = await window.storageManager.getClients();
+            
+            // Fetch client portal users
+            const response = await fetch('/.netlify/functions/client-portal-users');
+            const portalUsers = await response.json();
+            
+            // Fetch client messages
+            const messagesResponse = await fetch('/.netlify/functions/client-messages');
+            const messages = await messagesResponse.json();
+            const unreadMessages = messages.filter(m => !m.is_read);
+            
+            container.innerHTML = `
+                <div class="view-header">
+                    <h2><i class="fas fa-user-lock"></i> Client Portal Management</h2>
+                    <button class="add-btn" onclick="window.clientAccountManager.openCreateAccountModal()">
+                        <i class="fas fa-plus"></i> Create Account
+                    </button>
+                </div>
+                
+                ${unreadMessages.length > 0 ? `
+                    <div class="notes-filter-warning" style="margin-bottom: 2rem;">
+                        <i class="fas fa-envelope"></i>
+                        You have ${unreadMessages.length} unread message${unreadMessages.length > 1 ? 's' : ''} from clients
+                    </div>
+                ` : ''}
+                
+                <div class="stats-grid" style="margin-bottom: 2rem;">
+                    <div class="stat-card">
+                        <div class="stat-icon" style="background: rgba(108, 99, 255, 0.2);">
+                            <i class="fas fa-users" style="color: var(--primary-color);"></i>
+                        </div>
+                        <div class="stat-info">
+                            <div class="stat-value">${portalUsers.length}</div>
+                            <div class="stat-label">Active Accounts</div>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon" style="background: rgba(76, 175, 80, 0.2);">
+                            <i class="fas fa-envelope" style="color: var(--secondary-color);"></i>
+                        </div>
+                        <div class="stat-info">
+                            <div class="stat-value">${unreadMessages.length}</div>
+                            <div class="stat-label">Unread Messages</div>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon" style="background: rgba(255, 182, 77, 0.2);">
+                            <i class="fas fa-building" style="color: var(--warning-color);"></i>
+                        </div>
+                        <div class="stat-info">
+                            <div class="stat-value">${clients.length}</div>
+                            <div class="stat-label">Total Clients</div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="settings-grid">
+                    <!-- Client Portal Accounts -->
+                    <div class="settings-card">
+                        <div class="settings-card-header">
+                            <i class="fas fa-user-shield"></i>
+                            <h3>Portal Accounts</h3>
+                        </div>
+                        <div class="settings-card-body">
+                            ${portalUsers.length > 0 ? `
+                                <div class="data-list">
+                                    ${portalUsers.map(user => `
+                                        <div class="data-item">
+                                            <div class="data-content">
+                                                <h4>${user.client_name || 'Unknown'}</h4>
+                                                <div class="data-meta">
+                                                    <span><i class="fas fa-user"></i> ${user.username}</span>
+                                                    ${user.company ? `<span><i class="fas fa-building"></i> ${user.company}</span>` : ''}
+                                                    ${user.last_login ? `<span><i class="fas fa-clock"></i> Last login: ${new Date(user.last_login).toLocaleString()}</span>` : '<span><i class="fas fa-clock"></i> Never logged in</span>'}
+                                                </div>
+                                            </div>
+                                            <div class="data-actions">
+                                                <button class="icon-btn" onclick="window.clientAccountManager.viewClientDetails(${user.client_id})" title="View Details">
+                                                    <i class="fas fa-eye"></i>
+                                                </button>
+                                                <button class="icon-btn" onclick="window.clientAccountManager.postUpdate(${user.client_id})" title="Post Update">
+                                                    <i class="fas fa-bullhorn"></i>
+                                                </button>
+                                                <button class="icon-btn" onclick="window.clientAccountManager.editAccount(${user.id})" title="Edit">
+                                                    <i class="fas fa-edit"></i>
+                                                </button>
+                                                <button class="icon-btn" onclick="window.clientAccountManager.deleteAccount(${user.id})" title="Delete">
+                                                    <i class="fas fa-trash"></i>
+                                                </button>
+                                            </div>
+                                        </div>
+                                    `).join('')}
+                                </div>
+                            ` : `
+                                <div class="empty-state">
+                                    <i class="fas fa-user-lock"></i>
+                                    <p>No client portal accounts yet</p>
+                                    <button class="btn-primary" onclick="window.clientAccountManager.openCreateAccountModal()">
+                                        <i class="fas fa-plus"></i> Create First Account
+                                    </button>
+                                </div>
+                            `}
+                        </div>
+                    </div>
+                    
+                    <!-- Client Messages -->
+                    <div class="settings-card">
+                        <div class="settings-card-header">
+                            <i class="fas fa-comments"></i>
+                            <h3>Client Messages</h3>
+                        </div>
+                        <div class="settings-card-body">
+                            ${messages.length > 0 ? `
+                                <div class="data-list">
+                                    ${messages.slice(0, 10).map(msg => `
+                                        <div class="data-item ${msg.is_read ? '' : 'unread'}">
+                                            <div class="data-content">
+                                                <h4>${msg.subject || 'No Subject'}</h4>
+                                                <p style="margin: 0.5rem 0; color: var(--text-secondary);">${msg.message.substring(0, 100)}${msg.message.length > 100 ? '...' : ''}</p>
+                                                <div class="data-meta">
+                                                    <span><i class="fas fa-user"></i> ${msg.created_by}</span>
+                                                    <span><i class="fas fa-clock"></i> ${new Date(msg.created_at).toLocaleString()}</span>
+                                                </div>
+                                            </div>
+                                            <div class="data-actions">
+                                                <button class="icon-btn" onclick="window.clientAccountManager.viewMessage(${msg.id})" title="View">
+                                                    <i class="fas fa-eye"></i>
+                                                </button>
+                                                ${!msg.is_read ? `
+                                                    <button class="icon-btn" onclick="window.clientAccountManager.markAsRead(${msg.id})" title="Mark as Read">
+                                                        <i class="fas fa-check"></i>
+                                                    </button>
+                                                ` : ''}
+                                            </div>
+                                        </div>
+                                    `).join('')}
+                                </div>
+                                ${messages.length > 10 ? `<p style="text-align: center; margin-top: 1rem; color: var(--text-secondary);">Showing 10 of ${messages.length} messages</p>` : ''}
+                            ` : `
+                                <div class="empty-state">
+                                    <i class="fas fa-inbox"></i>
+                                    <p>No messages from clients</p>
+                                </div>
+                            `}
+                        </div>
+                    </div>
+                </div>
+            `;
+        } catch (error) {
+            console.error('Error rendering client accounts view:', error);
+            container.innerHTML = `
+                <div class="empty-state">
+                    <i class="fas fa-exclamation-triangle"></i>
+                    <h3>Error Loading Data</h3>
+                    <p>Please try refreshing the page</p>
+                </div>
+            `;
+        }
+    }
 }
 
 // Initialize view manager
 window.viewManager = new ViewManager();
+

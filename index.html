@@ -11,7 +11,7 @@
     <title>Auctus Ventures</title>
     <link rel="manifest" href="manifest.json">
     <link rel="apple-touch-icon" href="icons/icon-192.png">
-    <link rel="stylesheet" href="css/styles.css?v=20251019-34">
+    <link rel="stylesheet" href="css/styles.css?v=20251019-35">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 </head>
 <body>
@@ -43,14 +43,14 @@
                     </button>
                 </div>
                 
-                <div class="role-card" id="employee-card">
+                <div class="role-card" id="client-card">
                     <div class="role-icon">
-                        <i class="fas fa-user"></i>
+                        <i class="fas fa-user-circle"></i>
                     </div>
-                    <h2>Employee</h2>
-                    <p>View your schedule, tasks, and payroll information</p>
-                    <button class="role-btn" id="employee-access-btn">
-                        <i class="fas fa-arrow-right"></i> Employee Portal
+                    <h2>Client Portal</h2>
+                    <p>View your project progress, updates, and communicate with us</p>
+                    <button class="role-btn" id="client-access-btn">
+                        <i class="fas fa-arrow-right"></i> Client Portal
                     </button>
                 </div>
             </div>
@@ -218,6 +218,10 @@
                         <i class="fas fa-dollar-sign"></i>
                         <span>Finances</span>
                     </button>
+                    <button class="nav-item" data-view="client-accounts">
+                        <i class="fas fa-user-lock"></i>
+                        <span>Client Accounts</span>
+                    </button>
                     <button class="nav-item" data-view="notes">
                         <i class="fas fa-sticky-note"></i>
                         <span>Notes</span>
@@ -288,6 +292,10 @@
                 <i class="fas fa-dollar-sign"></i>
                 <span>Finances</span>
             </button>
+            <button class="nav-btn" data-view="client-accounts">
+                <i class="fas fa-user-lock"></i>
+                <span>Client Accounts</span>
+            </button>
             <button class="nav-btn" data-view="notes">
                 <i class="fas fa-sticky-note"></i>
                 <span>Notes</span>
@@ -296,36 +304,20 @@
     </div>
 
     <!-- Employee Portal -->
-    <div id="employee-portal" style="display: none; flex-direction: column; height: 100vh;">
+    <!-- Client Portal -->
+    <div id="client-portal" style="display: none; flex-direction: column; height: 100vh;">
         <header class="app-header">
             <h1 class="logo">Auctus Ventures</h1>
             <div class="header-actions">
-                <span class="employee-badge"><i class="fas fa-user"></i> Employee</span>
-                <button id="employee-logout-btn" class="icon-btn" title="Back to Home">
+                <span class="client-badge"><i class="fas fa-user-circle"></i> <span id="client-name-display">Client</span></span>
+                <button id="client-logout-btn" class="icon-btn" title="Logout">
                     <i class="fas fa-sign-out-alt"></i>
                 </button>
             </div>
         </header>
 
-        <main class="main-content" style="flex: 1; overflow-y: auto;">
-            <div class="view active">
-                <div class="view-header">
-                    <h2><i class="fas fa-user"></i> Employee Portal</h2>
-                </div>
-                
-                <div class="empty-state">
-                    <i class="fas fa-hard-hat" style="font-size: 4rem; color: var(--primary-color); opacity: 0.3;"></i>
-                    <h3>Employee Portal Coming Soon</h3>
-                    <p>This section will include:</p>
-                    <ul style="text-align: left; max-width: 400px; margin: 1rem auto;">
-                        <li><i class="fas fa-calendar-check"></i> Schedule & Time Tracking</li>
-                        <li><i class="fas fa-tasks"></i> Assigned Tasks & Projects</li>
-                        <li><i class="fas fa-money-check-alt"></i> Payroll Information</li>
-                        <li><i class="fas fa-file-alt"></i> Company Documents</li>
-                        <li><i class="fas fa-comments"></i> Team Communication</li>
-                    </ul>
-                </div>
-            </div>
+        <main class="main-content" id="client-portal-content" style="flex: 1; overflow-y: auto; padding: 2rem;">
+            <!-- Client portal content will be dynamically loaded here -->
         </main>
     </div>
 
@@ -333,10 +325,11 @@
     <div id="modal-container"></div>
 
     <!-- Scripts -->
-    <script src="js/storage.js?v=20251019-33"></script>
-    <script src="js/views.js?v=20251019-33"></script>
-    <script src="js/modals.js?v=20251019-33"></script>
-    <script src="js/app.js?v=20251019-33"></script>
+    <script src="js/storage.js?v=20251019-35"></script>
+    <script src="js/views.js?v=20251019-35"></script>
+    <script src="js/modals.js?v=20251019-35"></script>
+    <script src="js/client-accounts.js?v=20251019-35"></script>
+    <script src="js/app.js?v=20251019-35"></script>
     
     <!-- Service Worker Registration -->
     <script>

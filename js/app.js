@@ -22,8 +22,8 @@ class AuctusApp {
                 
                 if (this.isAuthenticated && this.userRole === 'admin') {
                     this.showAdminPanel();
-                } else if (this.isAuthenticated && this.userRole === 'employee') {
-                    this.showEmployeePortal();
+                } else if (this.isAuthenticated && this.userRole === 'client') {
+                    this.showClientPortal();
                 } else {
                     this.showRoleSelection();
                 }
@@ -36,11 +36,11 @@ class AuctusApp {
     showRoleSelection() {
         document.getElementById('role-selection').style.display = 'flex';
         document.getElementById('app').style.display = 'none';
-        document.getElementById('employee-portal').style.display = 'none';
+        document.getElementById('client-portal').style.display = 'none';
         
         // Setup role selection buttons
         const adminBtn = document.getElementById('admin-access-btn');
-        const employeeBtn = document.getElementById('employee-access-btn');
+        const clientBtn = document.getElementById('client-access-btn');
         
         if (adminBtn && !adminBtn.hasAttribute('data-listener')) {
             adminBtn.addEventListener('click', () => {
@@ -49,11 +49,11 @@ class AuctusApp {
             adminBtn.setAttribute('data-listener', 'true');
         }
         
-        if (employeeBtn && !employeeBtn.hasAttribute('data-listener')) {
-            employeeBtn.addEventListener('click', () => {
-                this.enterEmployeeMode();
+        if (clientBtn && !clientBtn.hasAttribute('data-listener')) {
+            clientBtn.addEventListener('click', () => {
+                this.showClientLogin();
             });
-            employeeBtn.setAttribute('data-listener', 'true');
+            clientBtn.setAttribute('data-listener', 'true');
         }
     }
 
@@ -140,28 +140,263 @@ class AuctusApp {
         }
     }
 
-    enterEmployeeMode() {
-        this.isAuthenticated = true;
-        this.userRole = 'employee';
+    showClientLogin() {
+        // Create client login modal
+        const modalHtml = `
+            <div class="modal-overlay" style="display: flex; align-items: center; justify-content: center;">
+                <div class="modal" style="max-width: 400px; border-radius: 20px; margin: 2rem;">
+                    <div class="modal-header">
+                        <h3><i class="fas fa-user-circle"></i> Client Portal Login</h3>
+                        <button class="close-btn" onclick="this.closest('.modal-overlay').remove()">
+                            <i class="fas fa-times"></i>
+                        </button>
+                    </div>
+                    <div class="modal-content">
+                        <form id="client-login-form">
+                            <div class="form-group">
+                                <label>Username</label>
+                                <input type="text" class="form-input" id="client-username" required autofocus>
+                            </div>
+                            <div class="form-group">
+                                <label>Password</label>
+                                <input type="password" class="form-input" id="client-password" required>
+                            </div>
+                            <button type="submit" class="btn-primary">
+                                <i class="fas fa-sign-in-alt"></i> Login
+                            </button>
+                        </form>
+                        <p style="text-align: center; margin-top: 1rem; color: var(--text-secondary); font-size: 0.875rem;">
+                            <i class="fas fa-info-circle"></i> Contact Auctus for login credentials
+                        </p>
+                    </div>
+                </div>
+            </div>
+        `;
         
-        // Save auth state
-        localStorage.setItem('auctus_auth', JSON.stringify({
-            isAuthenticated: true,
-            role: 'employee'
-        }));
+        document.body.insertAdjacentHTML('beforeend', modalHtml);
         
-        this.showEmployeePortal();
+        // Handle client login
+        document.getElementById('client-login-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const username = document.getElementById('client-username').value;
+            const password = document.getElementById('client-password').value;
+            
+            try {
+                const response = await fetch(`/.netlify/functions/client-portal-users?username=${username}&password=${password}`);
+                const data = await response.json();
+                
+                if (data.success && data.user) {
+                    // Save client session
+                    this.clientData = data.user;
+                    localStorage.setItem('auctus_auth', JSON.stringify({
+                        isAuthenticated: true,
+                        role: 'client',
+                        clientId: data.user.client_id,
+                        clientName: data.user.client_name
+                    }));
+                    
+                    document.querySelector('.modal-overlay').remove();
+                    this.showClientPortal();
+                } else {
+                    alert('Invalid username or password');
+                }
+            } catch (error) {
+                console.error('Login error:', error);
+                alert('Login failed. Please try again.');
+            }
+        });
     }
 
-    showEmployeePortal() {
+    async showClientPortal() {
+        this.isAuthenticated = true;
+        this.userRole = 'client';
+        
         document.getElementById('role-selection').style.display = 'none';
         document.getElementById('app').style.display = 'none';
-        document.getElementById('employee-portal').style.display = 'flex';
+        document.getElementById('client-portal').style.display = 'flex';
         
-        // Setup employee logout
-        document.getElementById('employee-logout-btn').addEventListener('click', () => {
-            this.logout();
-        });
+        // Get client data from localStorage
+        const authData = JSON.parse(localStorage.getItem('auctus_auth'));
+        const clientName = authData?.clientName || 'Client';
+        
+        // Update client name display
+        document.getElementById('client-name-display').textContent = clientName;
+        
+        // Setup client logout
+        const logoutBtn = document.getElementById('client-logout-btn');
+        if (logoutBtn && !logoutBtn.hasAttribute('data-listener')) {
+            logoutBtn.addEventListener('click', () => {
+                this.logout();
+            });
+            logoutBtn.setAttribute('data-listener', 'true');
+        }
+        
+        // Render client portal content
+        await this.renderClientPortalContent();
+    }
+
+    async renderClientPortalContent() {
+        const authData = JSON.parse(localStorage.getItem('auctus_auth'));
+        const clientId = authData?.clientId;
+        
+        if (!clientId) {
+            document.getElementById('client-portal-content').innerHTML = `
+                <div class="empty-state">
+                    <i class="fas fa-exclamation-triangle"></i>
+                    <h3>Session Error</h3>
+                    <p>Please log in again</p>
+                </div>
+            `;
+            return;
+        }
+        
+        try {
+            // Fetch client's projects
+            const projectsResponse = await fetch('/.netlify/functions/projects');
+            const allProjects = await projectsResponse.json();
+            const clientProjects = allProjects.filter(p => p.client_id == clientId);
+            
+            // Fetch client updates
+            const updatesResponse = await fetch(`/.netlify/functions/client-updates?client_id=${clientId}`);
+            const updates = await updatesResponse.json();
+            
+            const content = `
+                <div class="client-portal-dashboard">
+                    <h1 style="margin-bottom: 2rem;">
+                        <i class="fas fa-home"></i> Welcome Back!
+                    </h1>
+                    
+                    <!-- Projects Section -->
+                    <div class="settings-card" style="margin-bottom: 2rem;">
+                        <div class="settings-card-header">
+                            <i class="fas fa-project-diagram"></i>
+                            <h3>Your Projects</h3>
+                        </div>
+                        <div class="settings-card-body">
+                            ${clientProjects.length > 0 ? `
+                                <div class="client-projects-grid">
+                                    ${clientProjects.map(project => `
+                                        <div class="client-project-card">
+                                            <div class="project-header">
+                                                <h4>${project.name}</h4>
+                                                <span class="status-badge status-${project.status}">${project.status}</span>
+                                            </div>
+                                            ${project.description ? `<p>${project.description}</p>` : ''}
+                                            <div class="project-meta">
+                                                <div><i class="fas fa-calendar"></i> ${new Date(project.start_date).toLocaleDateString()}</div>
+                                                ${project.end_date ? `<div><i class="fas fa-flag-checkered"></i> ${new Date(project.end_date).toLocaleDateString()}</div>` : ''}
+                                            </div>
+                                        </div>
+                                    `).join('')}
+                                </div>
+                            ` : `
+                                <div class="empty-state">
+                                    <i class="fas fa-project-diagram"></i>
+                                    <p>No projects yet</p>
+                                </div>
+                            `}
+                        </div>
+                    </div>
+                    
+                    <!-- Updates Section -->
+                    <div class="settings-card" style="margin-bottom: 2rem;">
+                        <div class="settings-card-header">
+                            <i class="fas fa-bullhorn"></i>
+                            <h3>Updates from Auctus</h3>
+                        </div>
+                        <div class="settings-card-body">
+                            ${updates.length > 0 ? `
+                                <div class="updates-list">
+                                    ${updates.map(update => `
+                                        <div class="update-item">
+                                            <div class="update-header">
+                                                <h4>${update.title}</h4>
+                                                <span class="update-date">${new Date(update.created_at).toLocaleDateString()}</span>
+                                            </div>
+                                            <p>${update.content}</p>
+                                            <div class="update-footer">
+                                                <small><i class="fas fa-user"></i> ${update.created_by}</small>
+                                            </div>
+                                        </div>
+                                    `).join('')}
+                                </div>
+                            ` : `
+                                <div class="empty-state">
+                                    <i class="fas fa-inbox"></i>
+                                    <p>No updates yet</p>
+                                </div>
+                            `}
+                        </div>
+                    </div>
+                    
+                    <!-- Message Section -->
+                    <div class="settings-card">
+                        <div class="settings-card-header">
+                            <i class="fas fa-comments"></i>
+                            <h3>Send us a Message</h3>
+                        </div>
+                        <div class="settings-card-body">
+                            <form id="client-message-form">
+                                <div class="form-group">
+                                    <label>Subject (Optional)</label>
+                                    <input type="text" class="form-input" id="message-subject" placeholder="Message subject">
+                                </div>
+                                <div class="form-group">
+                                    <label>Message *</label>
+                                    <textarea class="form-textarea" id="message-content" rows="4" placeholder="Write your message here..." required></textarea>
+                                </div>
+                                <button type="submit" class="btn-primary">
+                                    <i class="fas fa-paper-plane"></i> Send Message
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            `;
+            
+            document.getElementById('client-portal-content').innerHTML = content;
+            
+            // Setup message form
+            document.getElementById('client-message-form').addEventListener('submit', async (e) => {
+                e.preventDefault();
+                const subject = document.getElementById('message-subject').value;
+                const message = document.getElementById('message-content').value;
+                
+                try {
+                    const response = await fetch('/.netlify/functions/client-messages', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            client_id: clientId,
+                            subject: subject || 'No Subject',
+                            message: message,
+                            created_by: authData.clientName
+                        })
+                    });
+                    
+                    if (response.ok) {
+                        alert('Message sent successfully!');
+                        document.getElementById('message-subject').value = '';
+                        document.getElementById('message-content').value = '';
+                    } else {
+                        alert('Failed to send message');
+                    }
+                } catch (error) {
+                    console.error('Error sending message:', error);
+                    alert('Failed to send message');
+                }
+            });
+            
+        } catch (error) {
+            console.error('Error loading client portal:', error);
+            document.getElementById('client-portal-content').innerHTML = `
+                <div class="empty-state">
+                    <i class="fas fa-exclamation-triangle"></i>
+                    <h3>Error Loading Portal</h3>
+                    <p>Please try refreshing the page</p>
+                </div>
+            `;
+        }
     }
 
     setCurrentUser(userName) {
@@ -200,12 +435,13 @@ class AuctusApp {
     logout() {
         this.isAuthenticated = false;
         this.userRole = null;
+        this.clientData = null;
         localStorage.removeItem('auctus_auth');
         localStorage.removeItem('auctus_token');
         
         // Hide all views
         document.getElementById('app').style.display = 'none';
-        document.getElementById('employee-portal').style.display = 'none';
+        document.getElementById('client-portal').style.display = 'none';
         
         // Show role selection
         this.showRoleSelection();
