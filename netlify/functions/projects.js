@@ -1,4 +1,5 @@
 const { Client } = require('pg');
+const { validateToken } = require('./auth-helper');
 
 const headers = {
   'Access-Control-Allow-Origin': process.env.ALLOWED_ORIGINS || 'https://auctusventures.netlify.app',
@@ -10,6 +11,17 @@ const headers = {
 exports.handler = async (event) => {
   if (event.httpMethod === 'OPTIONS') {
     return { statusCode: 200, headers, body: '' };
+  }
+
+  // Validate authentication token
+  try {
+    validateToken(event);
+  } catch (error) {
+    return {
+      statusCode: 401,
+      headers,
+      body: JSON.stringify({ error: 'Unauthorized: ' + error.message })
+    };
   }
 
   const client = new Client({

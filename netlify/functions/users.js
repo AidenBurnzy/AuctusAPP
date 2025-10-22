@@ -1,9 +1,10 @@
 const { Client } = require('pg');
+const { validateToken } = require('./auth-helper');
 
 exports.handler = async (event) => {
   // Add CORS headers
   const headers = {
-    'Access-Control-Allow-Origin': '*',
+    'Access-Control-Allow-Origin': process.env.ALLOWED_ORIGINS || 'https://auctusventures.netlify.app',
     'Access-Control-Allow-Headers': 'Content-Type, Authorization',
     'Access-Control-Allow-Methods': 'GET, POST, OPTIONS'
   };
@@ -14,6 +15,17 @@ exports.handler = async (event) => {
       statusCode: 200,
       headers,
       body: ''
+    };
+  }
+
+  // Validate authentication token
+  try {
+    validateToken(event);
+  } catch (error) {
+    return {
+      statusCode: 401,
+      headers,
+      body: JSON.stringify({ error: 'Unauthorized: ' + error.message })
     };
   }
 
@@ -29,7 +41,7 @@ exports.handler = async (event) => {
     return {
       statusCode: 500,
       headers,
-      body: JSON.stringify({ error: 'Failed to connect to database', details: error.message })
+      body: JSON.stringify({ error: 'Internal server error' })
     };
   }
 
@@ -113,20 +125,10 @@ exports.handler = async (event) => {
     }
   } catch (error) {
     console.error('Database error:', error);
-    console.error('Error stack:', error.stack);
-    console.error('Error details:', {
-      message: error.message,
-      code: error.code,
-      detail: error.detail
-    });
     return {
       statusCode: 500,
       headers,
-      body: JSON.stringify({ 
-        error: 'Database operation failed', 
-        message: error.message,
-        code: error.code 
-      })
+      body: JSON.stringify({ error: 'Internal server error' })
     };
   } finally {
     await client.end();

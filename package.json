@@ -3,6 +3,7 @@
   "version": "1.0.0",
   "description": "Auctus Ventures Management App",
   "dependencies": {
+    "jsonwebtoken": "^9.0.2",
     "pg": "^8.11.0"
   }
 }

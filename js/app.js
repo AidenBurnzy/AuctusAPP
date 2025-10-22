@@ -85,50 +85,48 @@ class AuctusApp {
         document.getElementById('admin-login-modal').style.display = 'none';
     }
 
-    checkAdminPassword(password) {
-        // In production, this should validate against a backend authentication service
-        // For now, use a secure method that doesn't expose the password
-        // Consider implementing: JWT, OAuth, or backend password verification
-        
-        // This is a placeholder - replace with proper authentication
-        const isValid = this.validateAdminPassword(password);
-        
-        if (isValid) {
-            this.isAuthenticated = true;
-            this.userRole = 'admin';
+    async checkAdminPassword(password) {
+        // Validate against backend authentication service
+        try {
+            const response = await fetch('/.netlify/functions/auth', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ password })
+            });
             
-            // Save auth state (but never store the password!)
-            localStorage.setItem('auctus_auth', JSON.stringify({
-                isAuthenticated: true,
-                role: 'admin',
-                timestamp: new Date().toISOString()
-            }));
+            const data = await response.json();
             
-            this.closeAdminLogin();
-            this.showAdminPanel();
-            return true;
-        } else {
+            if (response.ok && data.token) {
+                // Store JWT token for future requests
+                localStorage.setItem('auctus_auth_token', data.token);
+                
+                this.isAuthenticated = true;
+                this.userRole = 'admin';
+                
+                // Save auth state
+                localStorage.setItem('auctus_auth', JSON.stringify({
+                    isAuthenticated: true,
+                    role: 'admin',
+                    timestamp: new Date().toISOString()
+                }));
+                
+                this.closeAdminLogin();
+                this.showAdminPanel();
+                return true;
+            } else {
+                document.getElementById('password-error').style.display = 'block';
+                document.getElementById('password-error').textContent = 'Invalid password. Please try again.';
+                document.getElementById('admin-password').value = '';
+                document.getElementById('admin-password').focus();
+                return false;
+            }
+        } catch (error) {
+            console.error('Authentication error:', error);
             document.getElementById('password-error').style.display = 'block';
+            document.getElementById('password-error').textContent = 'Authentication service error. Please try again.';
             document.getElementById('admin-password').value = '';
-            document.getElementById('admin-password').focus();
             return false;
         }
-    }
-
-    validateAdminPassword(password) {
-        // TODO: Implement proper authentication
-        // This should validate against a backend service, not hardcoded value
-        // Current implementation: compare with hardcoded value (TEMPORARY - FIX NEEDED)
-        // 
-        // Recommended fix: Use JWT token with backend validation
-        // Example: const response = await fetch('/.netlify/functions/auth', { 
-        //   method: 'POST', 
-        //   body: JSON.stringify({ password }) 
-        // });
-        
-        // PLACEHOLDER: Accept demo password
-        // Replace this with real authentication!
-        return password === '0000'; // CHANGE THIS - Security issue
     }
 
     showAdminPanel() {
