@@ -91,27 +91,36 @@ class StorageManager {
 
     // Clients
     async getClients() {
-        console.log('getClients called, USE_API:', this.USE_API);
         if (this.USE_API) {
             try {
+                console.log('[StorageManager] Fetching clients from API...');
                 const result = await this.apiRequest('clients');
-                console.log('API returned clients:', result);
-                // Ensure we always return an array
+                console.log('[StorageManager] API returned clients:', result);
+                // Update localStorage as cache
+                if (Array.isArray(result)) {
+                    localStorage.setItem('auctus_clients', JSON.stringify(result));
+                }
                 return Array.isArray(result) ? result : [];
             } catch (error) {
-                console.error('API failed, using localStorage:', error);
+                console.error('[StorageManager] API failed, using localStorage:', error);
                 return JSON.parse(localStorage.getItem('auctus_clients') || '[]');
             }
         }
-        console.log('Using localStorage directly');
+        console.log('[StorageManager] Using localStorage directly for clients');
         return JSON.parse(localStorage.getItem('auctus_clients') || '[]');
     }
 
     async addClient(client) {
+        console.log('[StorageManager] Adding client:', client);
         if (this.USE_API) {
             try {
-                return await this.apiRequest('clients', 'POST', client);
+                const result = await this.apiRequest('clients', 'POST', client);
+                console.log('[StorageManager] Client added via API:', result);
+                // Refresh cache
+                await this.getClients();
+                return result;
             } catch (error) {
+                console.error('[StorageManager] API failed for addClient, using localStorage:', error);
                 // Fallback to localStorage
             }
         }
@@ -120,6 +129,7 @@ class StorageManager {
         client.createdAt = new Date().toISOString();
         clients.push(client);
         localStorage.setItem('auctus_clients', JSON.stringify(clients));
+        console.log('[StorageManager] Client added to localStorage:', client);
         return client;
     }
 
