@@ -231,11 +231,15 @@ class AuctusApp {
             logoutBtn.setAttribute('data-listener', 'true');
         }
         
-        // Render client portal content
-        await this.renderClientPortalContent();
+        // Initialize enhanced client portal
+        if (window.clientPortal) {
+            await window.clientPortal.initialize();
+        }
     }
 
     async renderClientPortalContent() {
+        // Legacy method - now handled by ClientPortalManager
+        // Keeping for backwards compatibility
         const authData = JSON.parse(localStorage.getItem('auctus_auth'));
         const clientId = authData?.clientId;
         
