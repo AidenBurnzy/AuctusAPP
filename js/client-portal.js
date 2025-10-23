@@ -54,10 +54,10 @@ class ClientPortalManager {
     }
 
     renderNavigation() {
-        const container = document.getElementById('client-portal-content');
+        const container = document.getElementById('client-portal-container');
         console.log('renderNavigation - Container found:', !!container);
         if (!container) {
-            console.error('client-portal-content container not found!');
+            console.error('client-portal-container not found!');
             return;
         }
 
