@@ -154,12 +154,10 @@ class ClientPortalManager {
         const clientId = authData.clientId;
 
         try {
-            // Fetch all data using authenticated requests
-            const [allProjects, updates, messages] = await Promise.all([
-                this.authenticatedFetch('/.netlify/functions/projects'),
-                this.authenticatedFetch(`/.netlify/functions/client-updates?client_id=${clientId}`),
-                this.authenticatedFetch(`/.netlify/functions/client-messages?client_id=${clientId}`)
-            ]);
+            // Use storageManager for API calls (handles auth automatically)
+            const allProjects = await window.storageManager.getProjects();
+            const updates = await this.authenticatedFetch(`/.netlify/functions/client-updates?client_id=${clientId}`).catch(() => []);
+            const messages = await this.authenticatedFetch(`/.netlify/functions/client-messages?client_id=${clientId}`).catch(() => []);
 
             // Ensure arrays
             const safeProjects = Array.isArray(allProjects) ? allProjects : [];
@@ -294,7 +292,7 @@ class ClientPortalManager {
         const clientId = authData.clientId;
 
         try {
-            const allProjects = await this.authenticatedFetch('/.netlify/functions/projects');
+            const allProjects = await window.storageManager.getProjects();
             const clientProjects = Array.isArray(allProjects) ? allProjects.filter(p => p.client_id == clientId) : [];
 
             // Group projects by status
@@ -357,7 +355,7 @@ class ClientPortalManager {
         const clientId = authData.clientId;
 
         try {
-            const updates = await this.authenticatedFetch(`/.netlify/functions/client-updates?client_id=${clientId}`);
+            const updates = await this.authenticatedFetch(`/.netlify/functions/client-updates?client_id=${clientId}`).catch(() => []);
             const safeUpdates = Array.isArray(updates) ? updates : [];
 
             container.innerHTML = `
@@ -420,7 +418,7 @@ class ClientPortalManager {
         const clientId = authData.clientId;
 
         try {
-            const messages = await this.authenticatedFetch(`/.netlify/functions/client-messages?client_id=${clientId}`);
+            const messages = await this.authenticatedFetch(`/.netlify/functions/client-messages?client_id=${clientId}`).catch(() => []);
             const safeMessages = Array.isArray(messages) ? messages : [];
 
             container.innerHTML = `
@@ -545,7 +543,7 @@ class ClientPortalManager {
 
         try {
             // Fetch finances/invoices related to this client
-            const finances = await this.authenticatedFetch('/.netlify/functions/finances');
+            const finances = await window.storageManager.getFinances();
             const safeFinances = Array.isArray(finances) ? finances : [];
             const clientInvoices = safeFinances.filter(f => 
                 f.type === 'Income' && 
