@@ -5,6 +5,30 @@ class ClientPortalManager {
         this.clientData = null;
     }
 
+    // Helper method for authenticated fetch requests
+    async authenticatedFetch(url, options = {}) {
+        const token = localStorage.getItem('auctus_token');
+        const headers = {
+            'Content-Type': 'application/json',
+            ...options.headers
+        };
+        
+        if (token) {
+            headers['Authorization'] = `Bearer ${token}`;
+        }
+
+        const response = await fetch(url, {
+            ...options,
+            headers
+        });
+
+        if (!response.ok) {
+            throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        }
+
+        return response.json();
+    }
+
     async initialize() {
         const authData = JSON.parse(localStorage.getItem('auctus_auth'));
         if (!authData || !authData.clientId) {
@@ -13,9 +37,8 @@ class ClientPortalManager {
         }
 
         try {
-            // Fetch client data
-            const clientResponse = await fetch(`/.netlify/functions/clients?id=${authData.clientId}`);
-            this.clientData = await clientResponse.json();
+            // Fetch client data using authenticated request
+            this.clientData = await this.authenticatedFetch(`/.netlify/functions/clients?id=${authData.clientId}`);
             
             this.renderNavigation();
             this.renderView(this.currentView);
@@ -115,20 +138,21 @@ class ClientPortalManager {
         const clientId = authData.clientId;
 
         try {
-            // Fetch all data
-            const [projectsRes, updatesRes, messagesRes] = await Promise.all([
-                fetch('/.netlify/functions/projects'),
-                fetch(`/.netlify/functions/client-updates?client_id=${clientId}`),
-                fetch(`/.netlify/functions/client-messages?client_id=${clientId}`)
+            // Fetch all data using authenticated requests
+            const [allProjects, updates, messages] = await Promise.all([
+                this.authenticatedFetch('/.netlify/functions/projects'),
+                this.authenticatedFetch(`/.netlify/functions/client-updates?client_id=${clientId}`),
+                this.authenticatedFetch(`/.netlify/functions/client-messages?client_id=${clientId}`)
             ]);
 
-            const allProjects = await projectsRes.json();
-            const updates = await updatesRes.json();
-            const messages = await messagesRes.json();
+            // Ensure arrays
+            const safeProjects = Array.isArray(allProjects) ? allProjects : [];
+            const safeUpdates = Array.isArray(updates) ? updates : [];
+            const safeMessages = Array.isArray(messages) ? messages : [];
 
-            const clientProjects = allProjects.filter(p => p.client_id == clientId);
-            const activeProjects = clientProjects.filter(p => p.status === 'In Progress' || p.status === 'Planning');
-            const recentUpdates = updates.slice(0, 3);
+            const clientProjects = safeProjects.filter(p => p.client_id == clientId);
+            const activeProjects = clientProjects.filter(p => p.status === 'In Progress' || p.status === 'Planning' || p.status === 'active');
+            const recentUpdates = safeUpdates.slice(0, 3);
 
             container.innerHTML = `
                 <div class="client-dashboard">
@@ -254,14 +278,14 @@ class ClientPortalManager {
         const clientId = authData.clientId;
 
         try {
-            const response = await fetch('/.netlify/functions/projects');
-            const allProjects = await response.json();
-            const clientProjects = allProjects.filter(p => p.client_id == clientId);
+            const allProjects = await this.authenticatedFetch('/.netlify/functions/projects');
+            const clientProjects = Array.isArray(allProjects) ? allProjects.filter(p => p.client_id == clientId) : [];
 
             // Group projects by status
             const grouped = {
                 'Planning': [],
                 'In Progress': [],
+                'active': [],
                 'Completed': [],
                 'On Hold': []
             };
@@ -317,8 +341,8 @@ class ClientPortalManager {
         const clientId = authData.clientId;
 
         try {
-            const response = await fetch(`/.netlify/functions/client-updates?client_id=${clientId}`);
-            const updates = await response.json();
+            const updates = await this.authenticatedFetch(`/.netlify/functions/client-updates?client_id=${clientId}`);
+            const safeUpdates = Array.isArray(updates) ? updates : [];
 
             container.innerHTML = `
                 <div class="client-updates-view">
@@ -327,9 +351,9 @@ class ClientPortalManager {
                         <p class="view-subtitle">Stay informed about your projects</p>
                     </div>
 
-                    ${updates.length > 0 ? `
+                    ${safeUpdates.length > 0 ? `
                         <div class="updates-timeline">
-                            ${updates.map(update => `
+                            ${safeUpdates.map(update => `
                                 <div class="timeline-item">
                                     <div class="timeline-marker">
                                         <i class="fas fa-circle"></i>
@@ -380,8 +404,8 @@ class ClientPortalManager {
         const clientId = authData.clientId;
 
         try {
-            const response = await fetch(`/.netlify/functions/client-messages?client_id=${clientId}`);
-            const messages = await response.json();
+            const messages = await this.authenticatedFetch(`/.netlify/functions/client-messages?client_id=${clientId}`);
+            const safeMessages = Array.isArray(messages) ? messages : [];
 
             container.innerHTML = `
                 <div class="client-messages-view">
@@ -393,7 +417,7 @@ class ClientPortalManager {
                     <div class="messages-layout">
                         <!-- New Message Form -->
                         <div class="message-compose-card">
-                            <h2><i class="fas fa-paper-plane"></i> Send a Message</h2>
+                            <h2><i class="fas fa-paper-plane"></i> Send a Message</h2>`
                             <form id="client-message-form" class="message-form">
                                 <div class="form-group">
                                     <label for="message-subject">Subject</label>
@@ -423,9 +447,9 @@ class ClientPortalManager {
                         <!-- Message History -->
                         <div class="message-history-card">
                             <h2><i class="fas fa-history"></i> Message History</h2>
-                            ${messages.length > 0 ? `
+                            ${safeMessages.length > 0 ? `
                                 <div class="messages-list">
-                                    ${messages.map(msg => `
+                                    ${safeMessages.map(msg => `
                                         <div class="message-item ${msg.is_read ? 'read' : 'unread'}">
                                             <div class="message-header">
                                                 <div class="message-subject">
@@ -505,9 +529,9 @@ class ClientPortalManager {
 
         try {
             // Fetch finances/invoices related to this client
-            const response = await fetch('/.netlify/functions/finances');
-            const finances = await response.json();
-            const clientInvoices = finances.filter(f => 
+            const finances = await this.authenticatedFetch('/.netlify/functions/finances');
+            const safeFinances = Array.isArray(finances) ? finances : [];
+            const clientInvoices = safeFinances.filter(f => 
                 f.type === 'Income' && 
                 f.client_id == clientId
             );
@@ -749,9 +773,8 @@ class ClientPortalManager {
 
         try {
             const authData = JSON.parse(localStorage.getItem('auctus_auth'));
-            const response = await fetch('/.netlify/functions/client-messages', {
+            await this.authenticatedFetch('/.netlify/functions/client-messages', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
                     client_id: clientId,
                     subject: subject || 'No Subject',
@@ -760,20 +783,16 @@ class ClientPortalManager {
                 })
             });
 
-            if (response.ok) {
-                document.getElementById('message-subject').value = '';
-                document.getElementById('message-content').value = '';
-                
-                // Show success message
-                this.showToast('Message sent successfully!', 'success');
-                
-                // Refresh messages view
-                setTimeout(() => {
-                    this.renderView('messages');
-                }, 1000);
-            } else {
-                throw new Error('Failed to send message');
-            }
+            document.getElementById('message-subject').value = '';
+            document.getElementById('message-content').value = '';
+            
+            // Show success message
+            this.showToast('Message sent successfully!', 'success');
+            
+            // Refresh messages view
+            setTimeout(() => {
+                this.renderView('messages');
+            }, 1000);
         } catch (error) {
             console.error('Error sending message:', error);
             this.showToast('Failed to send message. Please try again.', 'error');
