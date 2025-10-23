@@ -2045,10 +2045,14 @@ input[type="date"] {
     gap: 0.5rem;
     padding: 1rem;
     background: var(--card-bg);
-    border-radius: 15px;
-    margin-bottom: 2rem;
+    border-radius: 15px 15px 0 0;
+    margin-bottom: 0;
+    margin-top: auto;
     overflow-x: auto;
     scrollbar-width: none;
+    position: sticky;
+    bottom: 0;
+    border-top: 1px solid var(--border-color);
 }
 
 .client-portal-nav::-webkit-scrollbar {
@@ -2087,6 +2091,9 @@ input[type="date"] {
 /* Client Portal Main Content */
 .client-portal-main-content {
     animation: fadeIn 0.3s ease-in-out;
+    flex: 1;
+    overflow-y: auto;
+    padding-bottom: 1rem;
 }
 
 /* Dashboard Styles */
