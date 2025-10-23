@@ -102,6 +102,22 @@ class ClientPortalManager {
         container.insertAdjacentHTML('beforeend', navHtml);
     }
 
+    // Small loading skeleton helper used by several views
+    loadingSkeleton(count = 3) {
+        let html = '<div class="loading-skeletons">';
+        for (let i = 0; i < count; i++) {
+            html += `
+                <div class="skeleton-card">
+                    <div class="skeleton-line title"></div>
+                    <div class="skeleton-line"></div>
+                    <div class="skeleton-line short"></div>
+                </div>
+            `;
+        }
+        html += '</div>';
+        return html;
+    }
+
     switchView(view) {
         this.currentView = view;
         this.renderNavigation();
@@ -150,27 +166,30 @@ class ClientPortalManager {
     }
 
     async renderDashboard(container) {
+        // show loading skeleton immediately
+        container.innerHTML = this.loadingSkeleton(4);
+
         const authData = JSON.parse(localStorage.getItem('auctus_auth'));
-        const clientId = authData?.clientId;
-        
-        if (!clientId) {
+        const clientId2 = authData?.clientId;
+        if (!clientId2) {
             container.innerHTML = '<div class="error-message">Error: Client ID not found. Please log in again.</div>';
             return;
         }
 
         try {
-            // For client portal, we don't have a client-specific projects API
-            // So we'll show limited data or load from cache
-            const clientProjects = [];
-            const updates = await this.authenticatedFetch(`/.netlify/functions/client-updates?client_id=${clientId}`).catch(() => []);
-            const messages = await this.authenticatedFetch(`/.netlify/functions/client-messages?client_id=${clientId}`).catch(() => []);
+            // fetch updates and messages concurrently
+            const [updates, messages] = await Promise.all([
+                this.authenticatedFetch(`/.netlify/functions/client-updates?client_id=${clientId2}`).catch(() => []),
+                this.authenticatedFetch(`/.netlify/functions/client-messages?client_id=${clientId2}`).catch(() => [])
+            ]);
 
-            // Ensure arrays
             const safeUpdates = Array.isArray(updates) ? updates : [];
             const safeMessages = Array.isArray(messages) ? messages : [];
-
-            const activeProjects = [];
             const recentUpdates = safeUpdates.slice(0, 3);
+
+            // now render the dashboard with fetched data
+            const clientProjects = [];
+            const activeProjects = [];
 
             container.innerHTML = `
                 <div class="client-dashboard">
@@ -179,7 +198,6 @@ class ClientPortalManager {
                         <p class="dashboard-subtitle">Here's what's happening with your projects</p>
                     </div>
 
-                    <!-- Stats Cards -->
                     <div class="client-stats-grid">
                         <div class="client-stat-card">
                             <div class="stat-icon" style="background: rgba(108, 99, 255, 0.2);">
@@ -204,8 +222,8 @@ class ClientPortalManager {
                                 <i class="fas fa-bullhorn" style="color: var(--warning-color);"></i>
                             </div>
                             <div class="stat-details">
-                                <div class="stat-value">${updates.length}</div>
-                                <div class="stat-label">Updates</div>
+                                <div class="stat-value">${safeUpdates.length}</div>
+                                <div class="stat-label">Recent Updates</div>
                             </div>
                         </div>
                         <div class="client-stat-card">
@@ -213,13 +231,12 @@ class ClientPortalManager {
                                 <i class="fas fa-comments" style="color: #2196F3;"></i>
                             </div>
                             <div class="stat-details">
-                                <div class="stat-value">${messages.length}</div>
+                                <div class="stat-value">${safeMessages.length}</div>
                                 <div class="stat-label">Messages</div>
                             </div>
                         </div>
                     </div>
 
-                    <!-- Active Projects -->
                     <div class="dashboard-section">
                         <div class="section-header">
                             <h2><i class="fas fa-tasks"></i> Active Projects</h2>
@@ -239,7 +256,6 @@ class ClientPortalManager {
                         `}
                     </div>
 
-                    <!-- Recent Updates -->
                     <div class="dashboard-section">
                         <div class="section-header">
                             <h2><i class="fas fa-bullhorn"></i> Recent Updates</h2>
@@ -259,23 +275,18 @@ class ClientPortalManager {
                         `}
                     </div>
 
-                    <!-- Quick Actions -->
                     <div class="dashboard-section">
                         <div class="section-header">
                             <h2><i class="fas fa-bolt"></i> Quick Actions</h2>
                         </div>
                         <div class="quick-actions-grid">
-                            <button class="quick-action-btn" onclick="window.clientPortal.switchView('messages')">
-                                <i class="fas fa-paper-plane"></i>
-                                <span>Send Message</span>
-                            </button>
                             <button class="quick-action-btn" onclick="window.clientPortal.switchView('projects')">
-                                <i class="fas fa-eye"></i>
+                                <i class="fas fa-project-diagram"></i>
                                 <span>View Projects</span>
                             </button>
-                            <button class="quick-action-btn" onclick="window.clientPortal.switchView('files')">
-                                <i class="fas fa-upload"></i>
-                                <span>Upload File</span>
+                            <button class="quick-action-btn" onclick="window.clientPortal.switchView('messages')">
+                                <i class="fas fa-comments"></i>
+                                <span>View Messages</span>
                             </button>
                             <button class="quick-action-btn" onclick="window.clientPortal.switchView('invoices')">
                                 <i class="fas fa-receipt"></i>
@@ -292,75 +303,28 @@ class ClientPortalManager {
     }
 
     async renderProjects(container) {
-        const authData = JSON.parse(localStorage.getItem('auctus_auth'));
-        const clientId = authData?.clientId;
-        
-        if (!clientId) {
-            container.innerHTML = '<div class="error-message">Error: Client ID not found. Please log in again.</div>';
-            return;
-        }
+        // show skeleton while loading
+        container.innerHTML = this.loadingSkeleton(3);
 
-        try {
-            // For client portal, we don't have a dedicated projects API endpoint
-            // Show a placeholder with coming soon message
-            const clientProjects = [];
-
-            // Group projects by status
-            const grouped = {
-                'Planning': [],
-                'In Progress': [],
-                'active': [],
-                'Completed': [],
-                'On Hold': []
-            };
-
-            clientProjects.forEach(project => {
-                if (grouped[project.status]) {
-                    grouped[project.status].push(project);
-                }
-            });
-
-            container.innerHTML = `
-                <div class="client-projects-view">
-                    <div class="view-header">
-                        <h1><i class="fas fa-project-diagram"></i> My Projects</h1>
-                        <p class="view-subtitle">Track the progress of all your projects</p>
-                    </div>
-
-                    ${Object.entries(grouped).map(([status, projects]) => `
-                        <div class="project-group">
-                            <h2 class="group-title">
-                                <span class="status-badge status-${status.toLowerCase().replace(' ', '-')}">${status}</span>
-                                <span class="count-badge">${projects.length}</span>
-                            </h2>
-                            ${projects.length > 0 ? `
-                                <div class="projects-grid">
-                                    ${projects.map(project => this.renderDetailedProjectCard(project)).join('')}
-                                </div>
-                            ` : `
-                                <div class="empty-state-small">
-                                    <p>No projects in this stage</p>
-                                </div>
-                            `}
-                        </div>
-                    `).join('')}
-
-                    ${clientProjects.length === 0 ? `
-                        <div class="empty-state">
-                            <i class="fas fa-project-diagram"></i>
-                            <h3>No Projects Yet</h3>
-                            <p>We'll add your projects here as they begin</p>
-                        </div>
-                    ` : ''}
+        container.innerHTML = `
+            <div class="client-projects-view">
+                <div class="view-header">
+                    <h1><i class="fas fa-project-diagram"></i> My Projects</h1>
+                    <p class="view-subtitle">View all your projects and their progress</p>
                 </div>
-            `;
-        } catch (error) {
-            console.error('Error rendering projects:', error);
-            this.showError('Failed to load projects');
-        }
+                <div class="empty-state">
+                    <i class="fas fa-project-diagram"></i>
+                    <h3>Projects Coming Soon</h3>
+                    <p>Your project list will appear here</p>
+                </div>
+            </div>
+        `;
     }
 
     async renderUpdates(container) {
+        // show skeleton while loading
+        container.innerHTML = this.loadingSkeleton(3);
+
         const authData = JSON.parse(localStorage.getItem('auctus_auth'));
         const clientId = authData?.clientId;
         
@@ -429,6 +393,9 @@ class ClientPortalManager {
     }
 
     async renderMessages(container) {
+        // show skeleton while loading
+        container.innerHTML = this.loadingSkeleton(3);
+
         const authData = JSON.parse(localStorage.getItem('auctus_auth'));
         const clientId = authData?.clientId;
         
@@ -558,6 +525,9 @@ class ClientPortalManager {
     }
 
     async renderInvoices(container) {
+        // show skeleton while loading
+        container.innerHTML = this.loadingSkeleton(3);
+
         const authData = JSON.parse(localStorage.getItem('auctus_auth'));
         const clientId = authData?.clientId;
         
