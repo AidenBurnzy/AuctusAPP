@@ -1040,6 +1040,9 @@ class ViewManager {
                                                 <button class="icon-btn" onclick="window.clientAccountManager.postUpdate(${user.client_id})" title="Post Update">
                                                     <i class="fas fa-bullhorn"></i>
                                                 </button>
+                                                <button class="icon-btn" onclick="window.clientAccountManager.sendMessageToClient(${user.client_id}, '${user.client_name}')" title="Send Message">
+                                                    <i class="fas fa-envelope"></i>
+                                                </button>
                                                 <button class="icon-btn" onclick="window.clientAccountManager.editAccount(${user.id})" title="Edit">
                                                     <i class="fas fa-edit"></i>
                                                 </button>

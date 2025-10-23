@@ -249,6 +249,78 @@ class ClientAccountManager {
             }
         });
     }
+
+    async sendMessageToClient(clientId, clientName) {
+        const modalHtml = `
+            <div class="modal-overlay" onclick="if(event.target === this) this.remove()">
+                <div class="modal" style="max-width: 600px; border-radius: 20px; margin: auto;">
+                    <div class="modal-header">
+                        <h3><i class="fas fa-envelope"></i> Send Message to ${clientName || 'Client'}</h3>
+                        <button class="close-btn" onclick="this.closest('.modal-overlay').remove()">
+                            <i class="fas fa-times"></i>
+                        </button>
+                    </div>
+                    <div class="modal-content">
+                        <form id="send-message-form">
+                            <div class="form-group">
+                                <label>Subject (Optional)</label>
+                                <input type="text" class="form-input" name="subject" placeholder="Message subject">
+                            </div>
+                            <div class="form-group">
+                                <label>Message *</label>
+                                <textarea class="form-textarea" name="message" rows="6" placeholder="Type your message..." required></textarea>
+                            </div>
+                            <div class="form-actions">
+                                <button type="button" class="btn-secondary" onclick="this.closest('.modal-overlay').remove()">Cancel</button>
+                                <button type="submit" class="btn-primary">
+                                    <i class="fas fa-paper-plane"></i> Send Message
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        `;
+        
+        document.body.insertAdjacentHTML('beforeend', modalHtml);
+        
+        document.getElementById('send-message-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const formData = new FormData(e.target);
+            const currentUser = localStorage.getItem('auctus_current_user') || 'Auctus Admin';
+            
+            try {
+                const payload = {
+                    client_id: clientId,
+                    subject: formData.get('subject') || 'No Subject',
+                    message: formData.get('message'),
+                    created_by: currentUser
+                };
+                
+                console.log('Sending admin message:', payload);
+                
+                const response = await fetch('/.netlify/functions/client-messages', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+                
+                if (response.ok) {
+                    document.querySelector('.modal-overlay').remove();
+                    window.app.showNotification('Message sent successfully!');
+                    // Refresh the view to show the message
+                    await window.viewManager.renderClientAccountsView();
+                } else {
+                    const errorText = await response.text();
+                    console.error('Error response:', errorText);
+                    alert('Failed to send message');
+                }
+            } catch (error) {
+                console.error('Error sending message:', error);
+                alert('Failed to send message: ' + error.message);
+            }
+        });
+    }
     
     async viewClientDetails(clientId) {
         const clients = await window.storageManager.getClients();

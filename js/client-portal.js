@@ -767,25 +767,31 @@ class ClientPortalManager {
     }
 
     async sendMessage(clientId) {
-        const subject = document.getElementById('message-subject').value;
-        const message = document.getElementById('message-content').value;
+        const subject = document.getElementById('message-subject')?.value || '';
+        const messageContent = document.getElementById('message-content')?.value || '';
 
-        if (!message.trim()) {
-            alert('Please enter a message');
+        if (!messageContent.trim()) {
+            this.showToast('Please enter a message', 'error');
             return;
         }
 
         try {
             const authData = JSON.parse(localStorage.getItem('auctus_auth'));
-            await this.authenticatedFetch('/.netlify/functions/client-messages', {
+            const payload = {
+                client_id: clientId,
+                subject: subject || 'No Subject',
+                message: messageContent,
+                created_by: authData?.clientName || this.clientData?.name || 'Client'
+            };
+            
+            console.log('Sending message with payload:', payload);
+            
+            const response = await this.authenticatedFetch('/.netlify/functions/client-messages', {
                 method: 'POST',
-                body: JSON.stringify({
-                    client_id: clientId,
-                    subject: subject || 'No Subject',
-                    message: message,
-                    created_by: authData.username || this.clientData?.name || 'Client'
-                })
+                body: JSON.stringify(payload)
             });
+
+            console.log('Message response:', response);
 
             document.getElementById('message-subject').value = '';
             document.getElementById('message-content').value = '';
