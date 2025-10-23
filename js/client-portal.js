@@ -793,16 +793,23 @@ class ClientPortalManager {
 
             console.log('Message response:', response);
 
-            document.getElementById('message-subject').value = '';
-            document.getElementById('message-content').value = '';
+            // Clear form fields
+            const subjectField = document.getElementById('message-subject');
+            const contentField = document.getElementById('message-content');
+            if (subjectField) subjectField.value = '';
+            if (contentField) contentField.value = '';
             
             // Show success message
             this.showToast('Message sent successfully!', 'success');
             
-            // Refresh messages view
-            setTimeout(() => {
-                this.renderView('messages');
-            }, 1000);
+            // Wait a moment for database to commit, then refresh messages view
+            await new Promise(resolve => setTimeout(resolve, 500));
+            
+            // Find and refresh the container
+            const viewContainer = document.getElementById('view-container');
+            if (viewContainer) {
+                await this.renderMessages(viewContainer);
+            }
         } catch (error) {
             console.error('Error sending message:', error);
             this.showToast('Failed to send message. Please try again.', 'error');

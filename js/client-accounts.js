@@ -233,7 +233,7 @@ class ClientAccountManager {
                         client_id: clientId,
                         title: formData.get('title'),
                         content: formData.get('content'),
-                        created_by: currentUser
+                        posted_by: currentUser
                     })
                 });
                 
@@ -241,6 +241,8 @@ class ClientAccountManager {
                     document.querySelector('.modal-overlay').remove();
                     window.app.showNotification('Update posted successfully!');
                 } else {
+                    const errorText = await response.text();
+                    console.error('Failed to post update:', errorText);
                     alert('Failed to post update');
                 }
             } catch (error) {
