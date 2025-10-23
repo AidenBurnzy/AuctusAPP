@@ -2951,3 +2951,55 @@ input[type="date"] {
     50% { opacity: 0.5; }
 }
 
+/* Skeleton Loading Animation */
+.loading-skeletons {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+    padding: 1rem;
+}
+
+.skeleton-card {
+    background: var(--card-bg);
+    border-radius: 12px;
+    padding: 1.5rem;
+    animation: pulse 1.5s ease-in-out infinite;
+}
+
+.skeleton-line {
+    height: 1rem;
+    background: linear-gradient(
+        90deg,
+        rgba(255, 255, 255, 0.1) 0%,
+        rgba(255, 255, 255, 0.2) 50%,
+        rgba(255, 255, 255, 0.1) 100%
+    );
+    background-size: 200% 100%;
+    border-radius: 6px;
+    margin-bottom: 0.75rem;
+    animation: shimmer 2s infinite;
+}
+
+.skeleton-line.title {
+    height: 1.25rem;
+    margin-bottom: 1rem;
+    width: 70%;
+}
+
+.skeleton-line:last-child {
+    margin-bottom: 0;
+}
+
+.skeleton-line.short {
+    width: 40%;
+}
+
+@keyframes shimmer {
+    0% {
+        background-position: -200% 0;
+    }
+    100% {
+        background-position: 200% 0;
+    }
+}
+
