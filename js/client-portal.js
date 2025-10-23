@@ -98,8 +98,8 @@ class ClientPortalManager {
         if (existingNav) {
             existingNav.remove();
         }
-        console.log('Inserting navigation HTML');
-        container.insertAdjacentHTML('afterbegin', navHtml);
+        console.log('Inserting navigation HTML at bottom');
+        container.insertAdjacentHTML('beforeend', navHtml);
     }
 
     switchView(view) {
