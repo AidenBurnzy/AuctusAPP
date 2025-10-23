@@ -841,7 +841,66 @@ class AuctusApp {
         }
     }
 
+    toggleStatsLoading(isLoading) {
+        const statElements = document.querySelectorAll('.stat-number');
+        statElements.forEach(element => {
+            if (isLoading) {
+                element.classList.add('stat-loading');
+                element.setAttribute('aria-busy', 'true');
+                element.textContent = '';
+            } else {
+                element.classList.remove('stat-loading');
+                element.removeAttribute('aria-busy');
+            }
+        });
+    }
+
+    setStatNumber(elementId, value, options = {}) {
+        const element = document.getElementById(elementId);
+        if (!element) return;
+
+        const {
+            formatter,
+            fallback = '0',
+            color,
+            resetColor = false
+        } = options;
+
+        element.classList.remove('stat-loading');
+        element.removeAttribute('aria-busy');
+
+        let displayValue = value;
+        if (formatter && typeof formatter === 'function') {
+            displayValue = formatter(value);
+        }
+
+        if (displayValue === undefined || displayValue === null || displayValue === '') {
+            displayValue = fallback;
+        }
+
+        element.textContent = displayValue;
+
+        if (resetColor) {
+            element.style.removeProperty('color');
+        }
+
+        if (color) {
+            element.style.color = color;
+        }
+    }
+
+    setStatError(elementId, message = '--') {
+        const element = document.getElementById(elementId);
+        if (!element) return;
+
+        element.classList.remove('stat-loading');
+        element.removeAttribute('aria-busy');
+        element.textContent = message;
+        element.style.color = 'var(--text-secondary)';
+    }
+
     async updateStats() {
+        this.toggleStatsLoading(true);
         try {
             const clients = await window.storageManager.getClients();
             const projects = await window.storageManager.getProjects();
@@ -869,17 +928,39 @@ class AuctusApp {
             
             const netIncome = grossIncome - subscriptionsCost;
 
-            document.getElementById('total-clients').textContent = Array.isArray(clients) ? clients.length : 0;
-            document.getElementById('active-projects').textContent = 
-                Array.isArray(projects) ? projects.filter(p => p.status === 'active').length : 0;
-            document.getElementById('total-websites').textContent = Array.isArray(websites) ? websites.length : 0;
-            document.getElementById('total-ideas').textContent = Array.isArray(ideas) ? ideas.length : 0;
-            
-            const balanceElement = document.getElementById('finance-balance');
-            balanceElement.textContent = `${netIncome >= 0 ? '+' : ''}$${netIncome.toFixed(2)}`;
-            balanceElement.style.color = netIncome >= 0 ? '#4CAF50' : '#f44336';
+            const safeClients = Array.isArray(clients) ? clients : [];
+            const safeProjects = Array.isArray(projects) ? projects : [];
+            const safeWebsites = Array.isArray(websites) ? websites : [];
+            const safeIdeas = Array.isArray(ideas) ? ideas : [];
+
+            this.setStatNumber('total-clients', safeClients.length, { fallback: '0', resetColor: true });
+            this.setStatNumber(
+                'active-projects',
+                safeProjects.filter(p => p.status === 'active').length,
+                { fallback: '0', resetColor: true }
+            );
+            this.setStatNumber('total-websites', safeWebsites.length, { fallback: '0', resetColor: true });
+            this.setStatNumber('total-ideas', safeIdeas.length, { fallback: '0', resetColor: true });
+
+            this.setStatNumber(
+                'finance-balance',
+                netIncome,
+                {
+                    formatter: (value) => {
+                        const amount = Math.abs(value).toFixed(2);
+                        const sign = value > 0 ? '+' : value < 0 ? '-' : '';
+                        return `${sign}$${amount}`;
+                    },
+                    fallback: '$0.00',
+                    color: netIncome >= 0 ? '#4CAF50' : '#f44336'
+                }
+            );
         } catch (error) {
             console.error('Error updating stats:', error);
+            ['total-clients', 'active-projects', 'total-websites', 'total-ideas', 'finance-balance']
+                .forEach(id => this.setStatError(id));
+        } finally {
+            this.toggleStatsLoading(false);
         }
     }
 }

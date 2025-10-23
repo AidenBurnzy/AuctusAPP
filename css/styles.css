@@ -222,6 +222,30 @@ body {
 .stat-number {
     font-size: 1.75rem;
     font-weight: 700;
+    display: inline-flex;
+    align-items: center;
+    min-height: 1.75rem;
+    position: relative;
+}
+
+.stat-number.stat-loading {
+    color: transparent !important;
+}
+
+.stat-number.stat-loading::after {
+    content: '';
+    display: block;
+    width: 100%;
+    height: 1.4rem;
+    border-radius: 8px;
+    background: linear-gradient(
+        90deg,
+        rgba(255, 255, 255, 0.1) 0%,
+        rgba(255, 255, 255, 0.25) 50%,
+        rgba(255, 255, 255, 0.1) 100%
+    );
+    background-size: 200% 100%;
+    animation: shimmer 1.8s linear infinite;
 }
 
 .stat-label {
@@ -1398,6 +1422,7 @@ input[type="date"] {
     font-size: 2.5rem;
     font-weight: 700;
     background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+    background-clip: text;
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     margin-bottom: 0.5rem;
