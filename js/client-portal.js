@@ -37,9 +37,14 @@ class ClientPortalManager {
         }
 
         try {
-            // Fetch client data using authenticated request
-            this.clientData = await this.authenticatedFetch(`/.netlify/functions/clients?id=${authData.clientId}`);
+            // Use client data from auth data (already have it from login)
+            this.clientData = {
+                id: authData.clientId,
+                name: authData.clientName || 'Client',
+                company: authData.company || 'N/A'
+            };
             
+            console.log('Client portal initializing with data:', this.clientData);
             this.renderNavigation();
             this.renderView(this.currentView);
         } catch (error) {
@@ -49,6 +54,13 @@ class ClientPortalManager {
     }
 
     renderNavigation() {
+        const container = document.getElementById('client-portal-content');
+        console.log('renderNavigation - Container found:', !!container);
+        if (!container) {
+            console.error('client-portal-content container not found!');
+            return;
+        }
+
         const navHtml = `
             <div class="client-portal-nav">
                 <button class="client-nav-btn ${this.currentView === 'dashboard' ? 'active' : ''}" onclick="window.clientPortal.switchView('dashboard')">
@@ -82,11 +94,11 @@ class ClientPortalManager {
             </div>
         `;
 
-        const container = document.getElementById('client-portal-content');
         const existingNav = container.querySelector('.client-portal-nav');
         if (existingNav) {
             existingNav.remove();
         }
+        console.log('Inserting navigation HTML');
         container.insertAdjacentHTML('afterbegin', navHtml);
     }
 
@@ -97,7 +109,9 @@ class ClientPortalManager {
     }
 
     async renderView(view) {
+        console.log('renderView called with view:', view);
         const contentArea = document.getElementById('client-portal-main-content') || this.createMainContentArea();
+        console.log('Content area element:', !!contentArea);
         
         switch(view) {
             case 'dashboard':
@@ -126,10 +140,12 @@ class ClientPortalManager {
 
     createMainContentArea() {
         const container = document.getElementById('client-portal-content');
+        console.log('createMainContentArea - container:', !!container);
         const mainContent = document.createElement('div');
         mainContent.id = 'client-portal-main-content';
         mainContent.className = 'client-portal-main-content';
         container.appendChild(mainContent);
+        console.log('Created main content area, appended to container');
         return mainContent;
     }
 
