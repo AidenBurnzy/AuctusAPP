@@ -433,7 +433,7 @@ class ClientPortalManager {
                     <div class="messages-layout">
                         <!-- New Message Form -->
                         <div class="message-compose-card">
-                            <h2><i class="fas fa-paper-plane"></i> Send a Message</h2>`
+                            <h2><i class="fas fa-paper-plane"></i> Send a Message</h2>
                             <form id="client-message-form" class="message-form">
                                 <div class="form-group">
                                     <label for="message-subject">Subject</label>
