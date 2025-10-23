@@ -399,14 +399,19 @@ class ClientPortalManager {
         const authData = JSON.parse(localStorage.getItem('auctus_auth'));
         const clientId = authData?.clientId;
         
+        console.log('[renderMessages] Client ID:', clientId);
+        
         if (!clientId) {
             container.innerHTML = '<div class="error-message">Error: Client ID not found. Please log in again.</div>';
             return;
         }
 
         try {
-            const messages = await this.authenticatedFetch(`/.netlify/functions/client-messages?client_id=${clientId}`).catch(() => []);
+            console.log('[renderMessages] Fetching messages for client:', clientId);
+            const messages = await this.authenticatedFetch(`/.netlify/functions/client-messages?client_id=${clientId}`);
+            console.log('[renderMessages] Received messages:', messages);
             const safeMessages = Array.isArray(messages) ? messages : [];
+            console.log('[renderMessages] Safe messages count:', safeMessages.length);
 
             container.innerHTML = `
                 <div class="client-messages-view">
@@ -491,8 +496,14 @@ class ClientPortalManager {
                 await this.sendMessage(clientId);
             });
         } catch (error) {
-            console.error('Error rendering messages:', error);
-            this.showError('Failed to load messages');
+            console.error('[renderMessages] Error:', error);
+            container.innerHTML = `
+                <div class="error-message">
+                    <i class="fas fa-exclamation-triangle"></i>
+                    <p>Failed to load messages</p>
+                    <p style="font-size: 0.9em; opacity: 0.7;">${error.message}</p>
+                </div>
+            `;
         }
     }
 

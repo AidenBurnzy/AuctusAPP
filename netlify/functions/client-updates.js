@@ -52,14 +52,17 @@ exports.handler = async (event) => {
     // POST - Create new update
     if (event.httpMethod === 'POST') {
       const data = JSON.parse(event.body);
-      const { client_id, title, content, type, posted_by } = data;
+      const { client_id, title, content, type, posted_by, created_by } = data;
+      
+      // Accept both posted_by and created_by for compatibility
+      const author = posted_by || created_by || 'Admin';
       
       const result = await client.query(
         `INSERT INTO client_updates 
-        (client_id, title, content, type, posted_by) 
+        (client_id, title, content, type, created_by) 
         VALUES ($1, $2, $3, $4, $5) 
         RETURNING *`,
-        [client_id || null, title, content, type || 'update', posted_by]
+        [client_id || null, title, content, type || 'update', author]
       );
       
       return {
