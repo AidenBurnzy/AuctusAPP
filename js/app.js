@@ -2,6 +2,7 @@
 class AuctusApp {
     constructor() {
         this.currentView = 'dashboard';
+        this.lastNonSettingsView = 'dashboard';
         this.isAuthenticated = false;
         this.userRole = null; // 'admin' or 'employee'
         this.adminPassword = '0000'; // Simple password for now
@@ -547,10 +548,20 @@ class AuctusApp {
             });
         }
 
-        // Settings button
-        document.getElementById('settings-btn').addEventListener('click', () => {
-            this.switchView('settings');
-        });
+        // Settings button toggle
+        const settingsBtn = document.getElementById('settings-btn');
+        if (settingsBtn && !settingsBtn.hasAttribute('data-listener')) {
+            settingsBtn.addEventListener('click', () => {
+                if (this.currentView === 'settings') {
+                    const targetView = this.lastNonSettingsView || 'dashboard';
+                    this.switchView(targetView);
+                } else {
+                    this.lastNonSettingsView = this.currentView || 'dashboard';
+                    this.switchView('settings');
+                }
+            });
+            settingsBtn.setAttribute('data-listener', 'true');
+        }
 
         // Quick action buttons
         document.querySelectorAll('.action-btn').forEach(btn => {
@@ -586,6 +597,9 @@ class AuctusApp {
         targetView.classList.add('active');
 
         this.currentView = viewName;
+        if (viewName !== 'settings') {
+            this.lastNonSettingsView = viewName;
+        }
 
         // Close drawer after selection (mobile only)
         this.closeNavDrawer();
