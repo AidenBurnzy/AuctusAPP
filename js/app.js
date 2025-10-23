@@ -232,9 +232,12 @@ class AuctusApp {
         }
         
         // Initialize enhanced client portal
-        if (window.clientPortal) {
-            await window.clientPortal.initialize();
-        }
+        // Add a small delay to ensure localStorage is fully set
+        setTimeout(async () => {
+            if (window.clientPortal) {
+                await window.clientPortal.initialize();
+            }
+        }, 100);
     }
 
     async renderClientPortalContent() {

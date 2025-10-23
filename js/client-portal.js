@@ -46,7 +46,7 @@ class ClientPortalManager {
             
             console.log('Client portal initializing with data:', this.clientData);
             this.renderNavigation();
-            this.renderView(this.currentView);
+            await this.renderView(this.currentView);
         } catch (error) {
             console.error('Error initializing client portal:', error);
             this.showError('Failed to load portal data');
@@ -151,21 +151,25 @@ class ClientPortalManager {
 
     async renderDashboard(container) {
         const authData = JSON.parse(localStorage.getItem('auctus_auth'));
-        const clientId = authData.clientId;
+        const clientId = authData?.clientId;
+        
+        if (!clientId) {
+            container.innerHTML = '<div class="error-message">Error: Client ID not found. Please log in again.</div>';
+            return;
+        }
 
         try {
-            // Use storageManager for API calls (handles auth automatically)
-            const allProjects = await window.storageManager.getProjects();
+            // For client portal, we don't have a client-specific projects API
+            // So we'll show limited data or load from cache
+            const clientProjects = [];
             const updates = await this.authenticatedFetch(`/.netlify/functions/client-updates?client_id=${clientId}`).catch(() => []);
             const messages = await this.authenticatedFetch(`/.netlify/functions/client-messages?client_id=${clientId}`).catch(() => []);
 
             // Ensure arrays
-            const safeProjects = Array.isArray(allProjects) ? allProjects : [];
             const safeUpdates = Array.isArray(updates) ? updates : [];
             const safeMessages = Array.isArray(messages) ? messages : [];
 
-            const clientProjects = safeProjects.filter(p => p.client_id == clientId);
-            const activeProjects = clientProjects.filter(p => p.status === 'In Progress' || p.status === 'Planning' || p.status === 'active');
+            const activeProjects = [];
             const recentUpdates = safeUpdates.slice(0, 3);
 
             container.innerHTML = `
@@ -289,11 +293,17 @@ class ClientPortalManager {
 
     async renderProjects(container) {
         const authData = JSON.parse(localStorage.getItem('auctus_auth'));
-        const clientId = authData.clientId;
+        const clientId = authData?.clientId;
+        
+        if (!clientId) {
+            container.innerHTML = '<div class="error-message">Error: Client ID not found. Please log in again.</div>';
+            return;
+        }
 
         try {
-            const allProjects = await window.storageManager.getProjects();
-            const clientProjects = Array.isArray(allProjects) ? allProjects.filter(p => p.client_id == clientId) : [];
+            // For client portal, we don't have a dedicated projects API endpoint
+            // Show a placeholder with coming soon message
+            const clientProjects = [];
 
             // Group projects by status
             const grouped = {
@@ -352,7 +362,12 @@ class ClientPortalManager {
 
     async renderUpdates(container) {
         const authData = JSON.parse(localStorage.getItem('auctus_auth'));
-        const clientId = authData.clientId;
+        const clientId = authData?.clientId;
+        
+        if (!clientId) {
+            container.innerHTML = '<div class="error-message">Error: Client ID not found. Please log in again.</div>';
+            return;
+        }
 
         try {
             const updates = await this.authenticatedFetch(`/.netlify/functions/client-updates?client_id=${clientId}`).catch(() => []);
@@ -415,7 +430,12 @@ class ClientPortalManager {
 
     async renderMessages(container) {
         const authData = JSON.parse(localStorage.getItem('auctus_auth'));
-        const clientId = authData.clientId;
+        const clientId = authData?.clientId;
+        
+        if (!clientId) {
+            container.innerHTML = '<div class="error-message">Error: Client ID not found. Please log in again.</div>';
+            return;
+        }
 
         try {
             const messages = await this.authenticatedFetch(`/.netlify/functions/client-messages?client_id=${clientId}`).catch(() => []);
@@ -539,16 +559,16 @@ class ClientPortalManager {
 
     async renderInvoices(container) {
         const authData = JSON.parse(localStorage.getItem('auctus_auth'));
-        const clientId = authData.clientId;
+        const clientId = authData?.clientId;
+        
+        if (!clientId) {
+            container.innerHTML = '<div class="error-message">Error: Client ID not found. Please log in again.</div>';
+            return;
+        }
 
         try {
-            // Fetch finances/invoices related to this client
-            const finances = await window.storageManager.getFinances();
-            const safeFinances = Array.isArray(finances) ? finances : [];
-            const clientInvoices = safeFinances.filter(f => 
-                f.type === 'Income' && 
-                f.client_id == clientId
-            );
+            // For now, show placeholder - invoices API for client portal would need to be created
+            const clientInvoices = [];
 
             container.innerHTML = `
                 <div class="client-invoices-view">
