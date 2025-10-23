@@ -953,8 +953,19 @@ class ViewManager {
             const portalUsers = await response.json();
             
             // Fetch client messages
-            const messagesResponse = await fetch('/.netlify/functions/client-messages');
-            const messages = await messagesResponse.json();
+            let messages = [];
+            try {
+                const messagesResponse = await fetch('/.netlify/functions/client-messages');
+                if (messagesResponse.ok) {
+                    messages = await messagesResponse.json();
+                    if (!Array.isArray(messages)) {
+                        messages = [];
+                    }
+                }
+            } catch (error) {
+                console.error('Error fetching messages:', error);
+                messages = [];
+            }
             const unreadMessages = messages.filter(m => !m.is_read);
             
             container.innerHTML = `

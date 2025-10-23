@@ -352,53 +352,67 @@ class ClientAccountManager {
     }
     
     async viewMessage(messageId) {
-        const response = await fetch('/.netlify/functions/client-messages');
-        const messages = await response.json();
-        const message = messages.find(m => m.id === messageId);
+        try {
+            const response = await fetch('/.netlify/functions/client-messages');
+            if (!response.ok) {
+                throw new Error(`API error: ${response.status}`);
+            }
+            
+            const messages = await response.json();
+            if (!Array.isArray(messages)) {
+                alert('Invalid response from server');
+                return;
+            }
+            
+            const message = messages.find(m => m.id === messageId);
+            
+            if (!message) {
+                alert('Message not found');
+                return;
+            }
         
-        if (!message) {
-            alert('Message not found');
-            return;
-        }
-        
-        const modalHtml = `
-            <div class="modal-overlay" onclick="if(event.target === this) this.remove()">
-                <div class="modal" style="max-width: 600px; border-radius: 20px; margin: auto;">
-                    <div class="modal-header">
-                        <h3><i class="fas fa-envelope-open"></i> ${message.subject || 'Message'}</h3>
-                        <button class="close-btn" onclick="this.closest('.modal-overlay').remove()">
-                            <i class="fas fa-times"></i>
-                        </button>
-                    </div>
-                    <div class="modal-content">
-                        <div class="data-meta" style="margin-bottom: 1.5rem; padding-bottom: 1rem; border-bottom: 1px solid var(--border-color);">
-                            <span><i class="fas fa-user"></i> From: ${message.created_by}</span>
-                            <span><i class="fas fa-clock"></i> ${new Date(message.created_at).toLocaleString()}</span>
-                            ${message.is_read ? '<span style="color: var(--text-secondary);"><i class="fas fa-check-double"></i> Read</span>' : '<span style="color: var(--primary-color);"><i class="fas fa-envelope"></i> Unread</span>'}
+            const modalHtml = `
+                <div class="modal-overlay" onclick="if(event.target === this) this.remove()">
+                    <div class="modal" style="max-width: 600px; border-radius: 20px; margin: auto;">
+                        <div class="modal-header">
+                            <h3><i class="fas fa-envelope-open"></i> ${message.subject || 'Message'}</h3>
+                            <button class="close-btn" onclick="this.closest('.modal-overlay').remove()">
+                                <i class="fas fa-times"></i>
+                            </button>
                         </div>
-                        <div style="line-height: 1.6; color: var(--text-primary);">
-                            ${message.message}
-                        </div>
-                        <div class="form-actions" style="margin-top: 2rem;">
-                            ${!message.is_read ? `
-                                <button class="btn-primary" onclick="window.clientAccountManager.markAsRead(${message.id})">
-                                    <i class="fas fa-check"></i> Mark as Read
+                        <div class="modal-content">
+                            <div class="data-meta" style="margin-bottom: 1.5rem; padding-bottom: 1rem; border-bottom: 1px solid var(--border-color);">
+                                <span><i class="fas fa-user"></i> From: ${message.created_by}</span>
+                                <span><i class="fas fa-clock"></i> ${new Date(message.created_at).toLocaleString()}</span>
+                                ${message.is_read ? '<span style="color: var(--text-secondary);"><i class="fas fa-check-double"></i> Read</span>' : '<span style="color: var(--primary-color);"><i class="fas fa-envelope"></i> Unread</span>'}
+                            </div>
+                            <div style="line-height: 1.6; color: var(--text-primary);">
+                                ${message.message}
+                            </div>
+                            <div class="form-actions" style="margin-top: 2rem;">
+                                ${!message.is_read ? `
+                                    <button class="btn-primary" onclick="window.clientAccountManager.markAsRead(${message.id})">
+                                        <i class="fas fa-check"></i> Mark as Read
+                                    </button>
+                                ` : ''}
+                                <button class="btn-warning" onclick="window.clientAccountManager.archiveMessage(${message.id})" style="background: rgba(255, 152, 0, 0.2); color: var(--warning-color); border: 1px solid var(--warning-color);">
+                                    <i class="fas fa-archive"></i> Archive
                                 </button>
-                            ` : ''}
-                            <button class="btn-warning" onclick="window.clientAccountManager.archiveMessage(${message.id})" style="background: rgba(255, 152, 0, 0.2); color: var(--warning-color); border: 1px solid var(--warning-color);">
-                                <i class="fas fa-archive"></i> Archive
-                            </button>
-                            <button class="btn-danger" onclick="if(confirm('Delete this message? This cannot be undone.')) window.clientAccountManager.deleteMessage(${message.id})" style="background: rgba(255, 107, 107, 0.2); color: var(--danger-color); border: 1px solid var(--danger-color);">
-                                <i class="fas fa-trash"></i> Delete
-                            </button>
-                            <button class="btn-secondary" onclick="this.closest('.modal-overlay').remove()">Close</button>
+                                <button class="btn-danger" onclick="if(confirm('Delete this message? This cannot be undone.')) window.clientAccountManager.deleteMessage(${message.id})" style="background: rgba(255, 107, 107, 0.2); color: var(--danger-color); border: 1px solid var(--danger-color);">
+                                    <i class="fas fa-trash"></i> Delete
+                                </button>
+                                <button class="btn-secondary" onclick="this.closest('.modal-overlay').remove()">Close</button>
+                            </div>
                         </div>
                     </div>
                 </div>
-            </div>
-        `;
-        
-        document.body.insertAdjacentHTML('beforeend', modalHtml);
+            `;
+            
+            document.body.insertAdjacentHTML('beforeend', modalHtml);
+        } catch (error) {
+            console.error('Error viewing message:', error);
+            alert('Failed to load message');
+        }
     }
     
     async markAsRead(messageId) {

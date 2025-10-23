@@ -31,7 +31,7 @@ exports.handler = async (event) => {
                 query = `
                     SELECT cm.*, c.name as client_name, c.company
                     FROM client_messages cm
-                    JOIN clients c ON cm.client_id = c.id
+                    LEFT JOIN clients c ON cm.client_id = c.id
                     WHERE cm.client_id = $1 AND (cm.is_archived IS NULL OR cm.is_archived = FALSE)
                     ORDER BY cm.created_at DESC
                 `;
@@ -40,20 +40,31 @@ exports.handler = async (event) => {
                 query = `
                     SELECT cm.*, c.name as client_name, c.company
                     FROM client_messages cm
-                    JOIN clients c ON cm.client_id = c.id
+                    LEFT JOIN clients c ON cm.client_id = c.id
                     WHERE cm.is_archived IS NULL OR cm.is_archived = FALSE
                     ORDER BY cm.created_at DESC
                 `;
                 values = [];
             }
             
-            const result = await client.query(query, values);
-            
-            return {
-                statusCode: 200,
-                headers,
-                body: JSON.stringify(result.rows)
-            };
+            try {
+                const result = await client.query(query, values);
+                return {
+                    statusCode: 200,
+                    headers,
+                    body: JSON.stringify(result.rows)
+                };
+            } catch (queryError) {
+                console.error('Query error:', queryError.message);
+                return {
+                    statusCode: 500,
+                    headers,
+                    body: JSON.stringify({ 
+                        error: 'Failed to fetch messages',
+                        details: queryError.message 
+                    })
+                };
+            }
         }
         
         // POST - Create new message
