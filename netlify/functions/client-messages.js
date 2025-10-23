@@ -32,7 +32,7 @@ exports.handler = async (event) => {
                     SELECT cm.*, c.name as client_name, c.company
                     FROM client_messages cm
                     JOIN clients c ON cm.client_id = c.id
-                    WHERE cm.client_id = $1
+                    WHERE cm.client_id = $1 AND (cm.is_archived IS NULL OR cm.is_archived = FALSE)
                     ORDER BY cm.created_at DESC
                 `;
                 values = [params.client_id];
@@ -41,6 +41,7 @@ exports.handler = async (event) => {
                     SELECT cm.*, c.name as client_name, c.company
                     FROM client_messages cm
                     JOIN clients c ON cm.client_id = c.id
+                    WHERE cm.is_archived IS NULL OR cm.is_archived = FALSE
                     ORDER BY cm.created_at DESC
                 `;
                 values = [];
@@ -74,16 +75,16 @@ exports.handler = async (event) => {
             };
         }
         
-        // PUT - Update message (mark as read)
+        // PUT - Update message (mark as read or archive)
         if (event.httpMethod === 'PUT') {
             const data = JSON.parse(event.body);
             
             const result = await client.query(
                 `UPDATE client_messages
-                SET is_read = $1
-                WHERE id = $2
+                SET is_read = $1, is_archived = $2
+                WHERE id = $3
                 RETURNING *`,
-                [data.is_read, data.id]
+                [data.is_read || false, data.is_archived || false, data.id]
             );
             
             return {
@@ -95,9 +96,10 @@ exports.handler = async (event) => {
         
         // DELETE - Remove message
         if (event.httpMethod === 'DELETE') {
-            const id = event.queryStringParameters?.id;
+            const data = JSON.parse(event.body);
+            const messageId = data.id;
             
-            await client.query('DELETE FROM client_messages WHERE id = $1', [id]);
+            await client.query('DELETE FROM client_messages WHERE id = $1', [messageId]);
             
             return {
                 statusCode: 200,

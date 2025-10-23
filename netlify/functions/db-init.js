@@ -219,7 +219,8 @@ exports.handler = async (event) => {
         message TEXT NOT NULL,
         created_by VARCHAR(100) NOT NULL,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-        is_read BOOLEAN DEFAULT FALSE
+        is_read BOOLEAN DEFAULT FALSE,
+        is_archived BOOLEAN DEFAULT FALSE
       )
     `);
 

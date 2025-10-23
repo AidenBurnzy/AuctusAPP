@@ -374,6 +374,7 @@ class ClientAccountManager {
                         <div class="data-meta" style="margin-bottom: 1.5rem; padding-bottom: 1rem; border-bottom: 1px solid var(--border-color);">
                             <span><i class="fas fa-user"></i> From: ${message.created_by}</span>
                             <span><i class="fas fa-clock"></i> ${new Date(message.created_at).toLocaleString()}</span>
+                            ${message.is_read ? '<span style="color: var(--text-secondary);"><i class="fas fa-check-double"></i> Read</span>' : '<span style="color: var(--primary-color);"><i class="fas fa-envelope"></i> Unread</span>'}
                         </div>
                         <div style="line-height: 1.6; color: var(--text-primary);">
                             ${message.message}
@@ -384,6 +385,12 @@ class ClientAccountManager {
                                     <i class="fas fa-check"></i> Mark as Read
                                 </button>
                             ` : ''}
+                            <button class="btn-warning" onclick="window.clientAccountManager.archiveMessage(${message.id})" style="background: rgba(255, 152, 0, 0.2); color: var(--warning-color); border: 1px solid var(--warning-color);">
+                                <i class="fas fa-archive"></i> Archive
+                            </button>
+                            <button class="btn-danger" onclick="if(confirm('Delete this message? This cannot be undone.')) window.clientAccountManager.deleteMessage(${message.id})" style="background: rgba(255, 107, 107, 0.2); color: var(--danger-color); border: 1px solid var(--danger-color);">
+                                <i class="fas fa-trash"></i> Delete
+                            </button>
                             <button class="btn-secondary" onclick="this.closest('.modal-overlay').remove()">Close</button>
                         </div>
                     </div>
@@ -413,6 +420,54 @@ class ClientAccountManager {
             }
         } catch (error) {
             console.error('Error marking message as read:', error);
+        }
+    }
+
+    async archiveMessage(messageId) {
+        try {
+            const response = await fetch('/.netlify/functions/client-messages', {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    id: messageId,
+                    is_read: true,
+                    is_archived: true
+                })
+            });
+            
+            if (response.ok) {
+                const modal = document.querySelector('.modal-overlay');
+                if (modal) modal.remove();
+                await window.viewManager.renderClientAccountsView();
+                window.app.showNotification('Message archived');
+            } else {
+                alert('Failed to archive message');
+            }
+        } catch (error) {
+            console.error('Error archiving message:', error);
+            alert('Failed to archive message');
+        }
+    }
+
+    async deleteMessage(messageId) {
+        try {
+            const response = await fetch('/.netlify/functions/client-messages', {
+                method: 'DELETE',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ id: messageId })
+            });
+            
+            if (response.ok) {
+                const modal = document.querySelector('.modal-overlay');
+                if (modal) modal.remove();
+                await window.viewManager.renderClientAccountsView();
+                window.app.showNotification('Message deleted successfully');
+            } else {
+                alert('Failed to delete message');
+            }
+        } catch (error) {
+            console.error('Error deleting message:', error);
+            alert('Failed to delete message');
         }
     }
 }
