@@ -103,7 +103,7 @@
             <div id="dashboard-view" class="view active">
                 <div class="dashboard-header">
                     <h2>Dashboard</h2>
-                    <p class="subtitle">Manage your clients, projects & ideas</p>
+                    <p class="subtitle">Manage your clients and projects</p>
                 </div>
 
                 <div class="dashboard-stats">
@@ -126,13 +126,6 @@
                         <div class="stat-info">
                             <span class="stat-number" id="total-websites">0</span>
                             <span class="stat-label">Websites</span>
-                        </div>
-                    </div>
-                    <div class="stat-card" onclick="window.app.switchView('ideas')" style="cursor: pointer;">
-                        <div class="stat-icon"><i class="fas fa-lightbulb"></i></div>
-                        <div class="stat-info">
-                            <span class="stat-number" id="total-ideas">0</span>
-                            <span class="stat-label">Ideas</span>
                         </div>
                     </div>
                     <div class="stat-card stat-card-full" onclick="window.app.switchView('finances')" style="cursor: pointer;">
@@ -159,10 +152,6 @@
                             <i class="fas fa-code"></i>
                             <span>Add Website</span>
                         </button>
-                        <button class="action-btn" data-action="add-idea">
-                            <i class="fas fa-lightbulb"></i>
-                            <span>New Idea</span>
-                        </button>
                         <button class="action-btn" data-action="add-income">
                             <i class="fas fa-arrow-up" style="color: #4CAF50;"></i>
                             <span>Add Income</span>
@@ -179,7 +168,6 @@
             <div id="clients-view" class="view"></div>
             <div id="projects-view" class="view"></div>
             <div id="websites-view" class="view"></div>
-            <div id="ideas-view" class="view"></div>
             <div id="finances-view" class="view"></div>
             <div id="client-accounts-view" class="view"></div>
             <div id="notes-view" class="view"></div>
@@ -210,10 +198,6 @@
                     <button class="nav-item" data-view="websites">
                         <i class="fas fa-globe"></i>
                         <span>Websites</span>
-                    </button>
-                    <button class="nav-item" data-view="ideas">
-                        <i class="fas fa-lightbulb"></i>
-                        <span>Ideas</span>
                     </button>
                     <button class="nav-item" data-view="finances">
                         <i class="fas fa-dollar-sign"></i>
@@ -284,10 +268,6 @@
             <button class="nav-btn" data-view="websites">
                 <i class="fas fa-globe"></i>
                 <span>Websites</span>
-            </button>
-            <button class="nav-btn" data-view="ideas">
-                <i class="fas fa-lightbulb"></i>
-                <span>Ideas</span>
             </button>
             <button class="nav-btn" data-view="finances">
                 <i class="fas fa-dollar-sign"></i>

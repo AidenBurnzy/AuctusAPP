@@ -814,9 +814,6 @@ class AuctusApp {
             case 'websites':
                 await window.viewManager.renderWebsitesView();
                 break;
-            case 'ideas':
-                await window.viewManager.renderIdeasView();
-                break;
             case 'finances':
                 await window.viewManager.renderFinancesView();
                 break;
@@ -842,9 +839,6 @@ class AuctusApp {
                 break;
             case 'add-website':
                 window.modalManager.openWebsiteModal();
-                break;
-            case 'add-idea':
-                window.modalManager.openIdeaModal();
                 break;
             case 'add-income':
                 window.modalManager.openFinanceModal(null, 'income');
@@ -919,13 +913,12 @@ class AuctusApp {
             const clients = await window.storageManager.getClients();
             const projects = await window.storageManager.getProjects();
             const websites = await window.storageManager.getWebsites();
-            const ideas = await window.storageManager.getIdeas();
             
             // Get financial data for balance calculation
             const recurringIncome = await window.storageManager.getRecurringIncome();
             const subscriptions = await window.storageManager.getSubscriptions();
 
-            console.log('Stats data:', { clients, projects, websites, ideas, recurringIncome, subscriptions });
+            console.log('Stats data:', { clients, projects, websites, recurringIncome, subscriptions });
 
             // Calculate financial balance (Net Monthly Income)
             const grossIncome = Array.isArray(recurringIncome) 
@@ -945,8 +938,6 @@ class AuctusApp {
             const safeClients = Array.isArray(clients) ? clients : [];
             const safeProjects = Array.isArray(projects) ? projects : [];
             const safeWebsites = Array.isArray(websites) ? websites : [];
-            const safeIdeas = Array.isArray(ideas) ? ideas : [];
-
             this.setStatNumber('total-clients', safeClients.length, { fallback: '0', resetColor: true });
             this.setStatNumber(
                 'active-projects',
@@ -954,7 +945,6 @@ class AuctusApp {
                 { fallback: '0', resetColor: true }
             );
             this.setStatNumber('total-websites', safeWebsites.length, { fallback: '0', resetColor: true });
-            this.setStatNumber('total-ideas', safeIdeas.length, { fallback: '0', resetColor: true });
 
             this.setStatNumber(
                 'finance-balance',
@@ -971,7 +961,7 @@ class AuctusApp {
             );
         } catch (error) {
             console.error('Error updating stats:', error);
-            ['total-clients', 'active-projects', 'total-websites', 'total-ideas', 'finance-balance']
+            ['total-clients', 'active-projects', 'total-websites', 'finance-balance']
                 .forEach(id => this.setStatError(id));
         } finally {
             this.toggleStatsLoading(false);

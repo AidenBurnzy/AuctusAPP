@@ -16,9 +16,6 @@ class StorageManager {
         if (!localStorage.getItem('auctus_websites')) {
             localStorage.setItem('auctus_websites', JSON.stringify([]));
         }
-        if (!localStorage.getItem('auctus_ideas')) {
-            localStorage.setItem('auctus_ideas', JSON.stringify([]));
-        }
         if (!localStorage.getItem('auctus_finances')) {
             localStorage.setItem('auctus_finances', JSON.stringify([]));
         }
@@ -276,64 +273,6 @@ class StorageManager {
         const websites = await this.getWebsites();
         const filtered = websites.filter(w => w.id !== id);
         localStorage.setItem('auctus_websites', JSON.stringify(filtered));
-    }
-
-    // Ideas
-    async getIdeas() {
-        if (this.USE_API) {
-            try {
-                const result = await this.apiRequest('ideas');
-                return Array.isArray(result) ? result : [];
-            } catch (error) {
-                return JSON.parse(localStorage.getItem('auctus_ideas') || '[]');
-            }
-        }
-        return JSON.parse(localStorage.getItem('auctus_ideas') || '[]');
-    }
-
-    async addIdea(idea) {
-        if (this.USE_API) {
-            try {
-                return await this.apiRequest('ideas', 'POST', idea);
-            } catch (error) {
-                // Fallback
-            }
-        }
-        const ideas = await this.getIdeas();
-        idea.id = Date.now().toString();
-        idea.createdAt = new Date().toISOString();
-        ideas.push(idea);
-        localStorage.setItem('auctus_ideas', JSON.stringify(ideas));
-        return idea;
-    }
-
-    async updateIdea(id, updatedIdea) {
-        if (this.USE_API) {
-            try {
-                return await this.apiRequest('ideas', 'PUT', { id, ...updatedIdea });
-            } catch (error) {
-                // Fallback
-            }
-        }
-        const ideas = await this.getIdeas();
-        const index = ideas.findIndex(i => i.id === id);
-        if (index !== -1) {
-            ideas[index] = { ...ideas[index], ...updatedIdea, updatedAt: new Date().toISOString() };
-            localStorage.setItem('auctus_ideas', JSON.stringify(ideas));
-        }
-    }
-
-    async deleteIdea(id) {
-        if (this.USE_API) {
-            try {
-                return await this.apiRequest('ideas', 'DELETE', { id });
-            } catch (error) {
-                // Fallback
-            }
-        }
-        const ideas = await this.getIdeas();
-        const filtered = ideas.filter(i => i.id !== id);
-        localStorage.setItem('auctus_ideas', JSON.stringify(filtered));
     }
 
     // Finances
