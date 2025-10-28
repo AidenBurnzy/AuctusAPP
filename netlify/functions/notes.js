@@ -1,15 +1,27 @@
 const { Client } = require('pg');
+const { validateToken } = require('./auth-helper');
 
 exports.handler = async (event) => {
   const headers = {
-    'Access-Control-Allow-Origin': '*',
-    'Access-Control-Allow-Headers': 'Content-Type',
+    'Access-Control-Allow-Origin': process.env.ALLOWED_ORIGINS || 'https://auctusventures.netlify.app',
+    'Access-Control-Allow-Headers': 'Content-Type, Authorization',
     'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
     'Content-Type': 'application/json'
   };
 
   if (event.httpMethod === 'OPTIONS') {
     return { statusCode: 200, headers, body: '' };
+  }
+
+  // Validate authentication token
+  try {
+    validateToken(event);
+  } catch (error) {
+    return {
+      statusCode: 401,
+      headers,
+      body: JSON.stringify({ error: 'Unauthorized: ' + error.message })
+    };
   }
 
   const client = new Client({
@@ -81,10 +93,14 @@ exports.handler = async (event) => {
     };
 
   } catch (error) {
+    console.error('Notes API error:', error);
     return {
       statusCode: 500,
       headers,
-      body: JSON.stringify({ error: error.message })
+      body: JSON.stringify({ 
+        error: 'An error occurred processing your request',
+        ...(process.env.DEBUG === 'true' && { details: error.message })
+      })
     };
   } finally {
     await client.end();

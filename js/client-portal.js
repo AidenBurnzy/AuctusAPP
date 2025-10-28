@@ -413,86 +413,222 @@ class ClientPortalManager {
             const safeMessages = Array.isArray(messages) ? messages : [];
             console.log('[renderMessages] Safe messages count:', safeMessages.length);
 
-            container.innerHTML = `
-                <div class="client-messages-view">
-                    <div class="view-header">
-                        <h1><i class="fas fa-comments"></i> Messages</h1>
-                        <p class="view-subtitle">Communicate with the Auctus team</p>
-                    </div>
+            // Clear container and set it to not scroll
+            container.innerHTML = '';
+            container.style.overflow = 'hidden';
+            container.style.padding = '0';
 
-                    <div class="messages-layout">
-                        <!-- New Message Form -->
-                        <div class="message-compose-card">
-                            <h2><i class="fas fa-paper-plane"></i> Send a Message</h2>
-                            <form id="client-message-form" class="message-form">
-                                <div class="form-group">
-                                    <label for="message-subject">Subject</label>
-                                    <input 
-                                        type="text" 
-                                        class="form-input" 
-                                        id="message-subject" 
-                                        placeholder="What's this about?"
-                                    >
-                                </div>
-                                <div class="form-group">
-                                    <label for="message-content">Message *</label>
-                                    <textarea 
-                                        class="form-textarea" 
-                                        id="message-content" 
-                                        rows="6" 
-                                        placeholder="Write your message here..."
-                                        required
-                                    ></textarea>
-                                </div>
-                                <button type="submit" class="btn-primary">
-                                    <i class="fas fa-paper-plane"></i> Send Message
-                                </button>
-                            </form>
-                        </div>
+            // Create messages view container that fits the screen
+            const messagesView = document.createElement('div');
+            messagesView.style.cssText = 'display: flex; flex-direction: column; height: calc(100vh - 160px); overflow: hidden;';
 
-                        <!-- Message History -->
-                        <div class="message-history-card">
-                            <h2><i class="fas fa-history"></i> Message History</h2>
-                            ${safeMessages.length > 0 ? `
-                                <div class="messages-list">
-                                    ${safeMessages.map(msg => `
-                                        <div class="message-item ${msg.is_read ? 'read' : 'unread'}">
-                                            <div class="message-header">
-                                                <div class="message-subject">
-                                                    ${!msg.is_read ? '<span class="unread-dot"></span>' : ''}
-                                                    <strong>${msg.subject || 'No Subject'}</strong>
-                                                </div>
-                                                <span class="message-date">
-                                                    ${new Date(msg.created_at).toLocaleDateString()}
-                                                </span>
-                                            </div>
-                                            <p class="message-preview">${msg.message}</p>
-                                            <div class="message-footer">
-                                                <span class="message-author">
-                                                    <i class="fas fa-user"></i> You
-                                                </span>
-                                                ${msg.is_read ? 
-                                                    '<span class="read-status"><i class="fas fa-check-double"></i> Read</span>' : 
-                                                    '<span class="unread-status"><i class="fas fa-envelope"></i> Sent</span>'
-                                                }
-                                            </div>
-                                        </div>
-                                    `).join('')}
-                                </div>
-                            ` : `
-                                <div class="empty-state-small">
-                                    <i class="fas fa-inbox"></i>
-                                    <p>No messages yet</p>
-                                </div>
-                            `}
-                        </div>
-                    </div>
-                </div>
+            // Header
+            const header = document.createElement('div');
+            header.style.cssText = 'padding: 1.5rem; border-bottom: 1px solid var(--border-color); flex-shrink: 0; background: var(--bg-secondary);';
+            header.innerHTML = `
+                <h3 style="margin: 0; font-size: 1.3rem; color: var(--text-primary);">Messages</h3>
+                <div style="font-size: 0.85rem; color: var(--text-secondary); margin-top: 0.25rem;">Chat with the Auctus team</div>
             `;
+            messagesView.appendChild(header);
 
-            // Setup message form
-            document.getElementById('client-message-form').addEventListener('submit', async (e) => {
+            // Messages feed
+            const messagesFeed = document.createElement('div');
+            messagesFeed.id = 'client-messages-feed';
+            messagesFeed.style.cssText = 'flex: 1; overflow-y: auto; overflow-x: hidden; padding: 1.5rem; background: var(--bg-primary); display: flex; flex-direction: column;';
+
+            if (safeMessages.length === 0) {
+                const emptyMsg = document.createElement('div');
+                emptyMsg.style.cssText = 'text-align: center; padding: 3rem 2rem; color: var(--text-secondary);';
+                emptyMsg.innerHTML = '<i class="fas fa-comments" style="font-size: 3rem; opacity: 0.3; margin-bottom: 1rem; display: block;"></i><p style="margin: 0;">No messages yet. Start the conversation below!</p>';
+                messagesFeed.appendChild(emptyMsg);
+            } else {
+                // Sort messages by date
+                const sortedMessages = [...safeMessages].sort((a, b) => new Date(a.created_at) - new Date(b.created_at));
+
+                sortedMessages.forEach((msg, index) => {
+                    const isClient = msg.created_by !== 'admin';
+                    const showTimestamp = index === 0 || 
+                        (new Date(msg.created_at).getTime() - new Date(sortedMessages[index - 1].created_at).getTime() > 3600000);
+
+                    // Timestamp divider
+                    if (showTimestamp) {
+                        const timestampDiv = document.createElement('div');
+                        timestampDiv.style.cssText = 'text-align: center; margin: 1rem 0 0.5rem; color: var(--text-secondary); font-size: 0.75rem;';
+                        const date = new Date(msg.created_at);
+                        const today = new Date();
+                        const yesterday = new Date(today);
+                        yesterday.setDate(yesterday.getDate() - 1);
+
+                        let dateLabel;
+                        if (date.toDateString() === today.toDateString()) {
+                            dateLabel = 'Today';
+                        } else if (date.toDateString() === yesterday.toDateString()) {
+                            dateLabel = 'Yesterday';
+                        } else {
+                            dateLabel = date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+                        }
+                        timestampDiv.textContent = dateLabel;
+                        messagesFeed.appendChild(timestampDiv);
+                    }
+
+                    // Message row
+                    const msgRow = document.createElement('div');
+                    msgRow.style.cssText = `display: flex; align-items: flex-end; gap: 0.5rem; margin-bottom: 0.25rem; ${isClient ? 'flex-direction: row-reverse;' : 'flex-direction: row;'}`;
+
+                    // Message bubble
+                    const bubble = document.createElement('div');
+                    bubble.style.cssText = `
+                        max-width: 65%;
+                        padding: 0.65rem 1rem;
+                        border-radius: 18px;
+                        background: ${isClient ? '#007AFF' : '#E5E5EA'};
+                        color: ${isClient ? 'white' : '#000000'};
+                        box-shadow: 0 1px 2px rgba(0,0,0,0.1);
+                        word-wrap: break-word;
+                        position: relative;
+                    `;
+
+                    // Tail
+                    const tail = document.createElement('div');
+                    tail.style.cssText = `
+                        position: absolute;
+                        bottom: 0;
+                        width: 0;
+                        height: 0;
+                        border-style: solid;
+                        ${isClient ? 
+                            'right: -6px; border-width: 0 0 10px 8px; border-color: transparent transparent transparent #007AFF;' : 
+                            'left: -6px; border-width: 0 8px 10px 0; border-color: transparent #E5E5EA transparent transparent;'}
+                    `;
+                    bubble.appendChild(tail);
+
+                    // Message content
+                    const content = document.createElement('div');
+                    content.style.cssText = 'line-height: 1.4; font-size: 0.95rem;';
+                    content.textContent = msg.message || msg.content;
+                    bubble.appendChild(content);
+
+                    msgRow.appendChild(bubble);
+
+                    // Time
+                    const time = document.createElement('div');
+                    time.style.cssText = 'font-size: 0.7rem; color: var(--text-secondary); padding-bottom: 0.25rem; white-space: nowrap;';
+                    const msgDate = new Date(msg.created_at);
+                    time.textContent = msgDate.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
+                    msgRow.appendChild(time);
+
+                    messagesFeed.appendChild(msgRow);
+                });
+
+                // Scroll to bottom
+                setTimeout(() => {
+                    messagesFeed.scrollTop = messagesFeed.scrollHeight;
+                }, 50);
+            }
+
+            messagesView.appendChild(messagesFeed);
+
+            // Compose form
+            const composeSection = document.createElement('div');
+            composeSection.style.cssText = 'flex-shrink: 0; border-top: 1px solid var(--border-color); padding: 1rem 1.5rem; background: var(--bg-secondary);';
+
+            const composeForm = document.createElement('form');
+            composeForm.id = 'client-message-form';
+            composeForm.style.cssText = 'display: flex; gap: 0.75rem; align-items: flex-end;';
+
+            const messageInput = document.createElement('textarea');
+            messageInput.id = 'message-content';
+            messageInput.rows = 1;
+            messageInput.placeholder = 'Type a message...';
+            messageInput.required = true;
+            messageInput.style.cssText = 'flex: 1; padding: 0.75rem 1rem; border: 1px solid var(--border-color); border-radius: 20px; background: var(--bg-primary); color: var(--text-primary); font-size: 0.95rem; resize: none; max-height: 100px; font-family: inherit;';
+
+            // Auto-resize
+            messageInput.addEventListener('input', function() {
+                this.style.height = 'auto';
+                this.style.height = Math.min(this.scrollHeight, 100) + 'px';
+            });
+
+            // Send on Enter
+            messageInput.addEventListener('keydown', function(e) {
+                if (e.key === 'Enter' && !e.shiftKey) {
+                    e.preventDefault();
+                    composeForm.dispatchEvent(new Event('submit'));
+                }
+            });
+
+            const sendBtn = document.createElement('button');
+            sendBtn.type = 'submit';
+            sendBtn.className = 'btn-primary';
+            sendBtn.style.cssText = 'padding: 0.75rem 1rem; background: var(--primary-color); color: white; border: none; border-radius: 50%; cursor: pointer; font-weight: 600; transition: all 0.2s; display: flex; align-items: center; justify-content: center; width: 40px; height: 40px;';
+            sendBtn.innerHTML = '<i class="fas fa-arrow-up"></i>';
+
+            sendBtn.addEventListener('mouseenter', () => {
+                sendBtn.style.transform = 'scale(1.05)';
+                sendBtn.style.boxShadow = '0 4px 12px rgba(33, 150, 243, 0.3)';
+            });
+            sendBtn.addEventListener('mouseleave', () => {
+                sendBtn.style.transform = 'scale(1)';
+                sendBtn.style.boxShadow = 'none';
+            });
+
+            composeForm.appendChild(messageInput);
+            composeForm.appendChild(sendBtn);
+            composeSection.appendChild(composeForm);
+            messagesView.appendChild(composeSection);
+
+            // Add to container
+            container.appendChild(messagesView);
+
+            // Setup message form submit
+            composeForm.addEventListener('submit', async (e) => {
                 e.preventDefault();
+                
+                const messageContent = messageInput.value.trim();
+                if (!messageContent) return;
+                
+                // Immediately add the message to the UI (optimistic update)
+                const newMsgRow = document.createElement('div');
+                newMsgRow.style.cssText = 'display: flex; align-items: flex-end; gap: 0.5rem; margin-bottom: 0.25rem; flex-direction: row-reverse;';
+                
+                const newBubble = document.createElement('div');
+                newBubble.style.cssText = `
+                    max-width: 65%;
+                    padding: 0.65rem 1rem;
+                    border-radius: 18px;
+                    background: #007AFF;
+                    color: white;
+                    box-shadow: 0 1px 2px rgba(0,0,0,0.1);
+                    word-wrap: break-word;
+                    position: relative;
+                `;
+                
+                const newTail = document.createElement('div');
+                newTail.style.cssText = 'position: absolute; bottom: 0; right: -6px; width: 0; height: 0; border-style: solid; border-width: 0 0 10px 8px; border-color: transparent transparent transparent #007AFF;';
+                newBubble.appendChild(newTail);
+                
+                const newContent = document.createElement('div');
+                newContent.style.cssText = 'line-height: 1.4; font-size: 0.95rem;';
+                newContent.textContent = messageContent;
+                newBubble.appendChild(newContent);
+                
+                newMsgRow.appendChild(newBubble);
+                
+                const newTime = document.createElement('div');
+                newTime.style.cssText = 'font-size: 0.7rem; color: var(--text-secondary); padding-bottom: 0.25rem; white-space: nowrap;';
+                newTime.textContent = new Date().toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
+                newMsgRow.appendChild(newTime);
+                
+                messagesFeed.appendChild(newMsgRow);
+                
+                // Clear and reset input
+                messageInput.value = '';
+                messageInput.style.height = 'auto';
+                
+                // Scroll to bottom
+                messagesFeed.scrollTop = messagesFeed.scrollHeight;
+                
+                // Send to server
                 await this.sendMessage(clientId);
             });
         } catch (error) {
@@ -778,52 +914,39 @@ class ClientPortalManager {
     }
 
     async sendMessage(clientId) {
-        const subject = document.getElementById('message-subject')?.value || '';
         const messageContent = document.getElementById('message-content')?.value || '';
 
         if (!messageContent.trim()) {
-            this.showToast('Please enter a message', 'error');
-            return;
+            return; // Already validated in form submit
         }
 
         try {
             const authData = JSON.parse(localStorage.getItem('auctus_auth'));
             const payload = {
                 client_id: clientId,
-                subject: subject || 'No Subject',
+                subject: null,
                 message: messageContent,
                 created_by: authData?.clientName || this.clientData?.name || 'Client'
             };
             
             console.log('Sending message with payload:', payload);
             
-            const response = await this.authenticatedFetch('/.netlify/functions/client-messages', {
+            await this.authenticatedFetch('/.netlify/functions/client-messages', {
                 method: 'POST',
                 body: JSON.stringify(payload)
             });
 
-            console.log('Message response:', response);
-
-            // Clear form fields
-            const subjectField = document.getElementById('message-subject');
-            const contentField = document.getElementById('message-content');
-            if (subjectField) subjectField.value = '';
-            if (contentField) contentField.value = '';
-            
-            // Show success message
-            this.showToast('Message sent successfully!', 'success');
-            
-            // Wait a moment for database to commit, then refresh messages view
-            await new Promise(resolve => setTimeout(resolve, 500));
-            
-            // Find and refresh the container
-            const viewContainer = document.getElementById('view-container');
-            if (viewContainer) {
-                await this.renderMessages(viewContainer);
-            }
+            console.log('Message sent successfully');
+            this.showToast('Message sent!', 'success');
         } catch (error) {
             console.error('Error sending message:', error);
             this.showToast('Failed to send message. Please try again.', 'error');
+            
+            // Refresh on error to show actual state
+            const viewContainer = document.getElementById('client-portal-content');
+            if (viewContainer) {
+                await this.renderMessages(viewContainer);
+            }
         }
     }
 

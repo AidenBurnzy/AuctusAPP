@@ -169,6 +169,7 @@
             <div id="projects-view" class="view"></div>
             <div id="websites-view" class="view"></div>
             <div id="finances-view" class="view"></div>
+            <div id="messages-view" class="view"></div>
             <div id="client-accounts-view" class="view"></div>
             <div id="notes-view" class="view"></div>
             <div id="settings-view" class="view"></div>
@@ -202,6 +203,10 @@
                     <button class="nav-item" data-view="finances">
                         <i class="fas fa-dollar-sign"></i>
                         <span>Finances</span>
+                    </button>
+                    <button class="nav-item" data-view="messages">
+                        <i class="fas fa-envelope"></i>
+                        <span>Messages</span>
                     </button>
                     <button class="nav-item" data-view="client-accounts">
                         <i class="fas fa-user-lock"></i>
@@ -273,6 +278,10 @@
                 <i class="fas fa-dollar-sign"></i>
                 <span>Finances</span>
             </button>
+            <button class="nav-btn" data-view="messages">
+                <i class="fas fa-envelope"></i>
+                <span>Messages</span>
+            </button>
             <button class="nav-btn" data-view="client-accounts">
                 <i class="fas fa-user-lock"></i>
                 <span>Client Accounts</span>
@@ -284,7 +293,6 @@
         </nav>
     </div>
 
-    <!-- Employee Portal -->
     <!-- Client Portal -->
     <div id="client-portal" style="display: none; flex-direction: column; height: 100vh;">
         <header class="app-header">
@@ -298,7 +306,7 @@
         </header>
 
         <div id="client-portal-container" style="display: flex; flex-direction: column; flex: 1; overflow: hidden;">
-            <main class="main-content" id="client-portal-content" style="flex: 1; overflow-y: auto; padding: 2rem; padding-top: calc(70px + 2rem);">
+            <main class="client-portal-main-content" id="client-portal-content" style="flex: 1; overflow-y: auto; padding: 2rem; padding-top: calc(70px + 2rem);">
                 <!-- Client portal content will be dynamically loaded here -->
             </main>
         </div>

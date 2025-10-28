@@ -2,7 +2,6 @@
 class AuctusApp {
     constructor() {
         this.currentView = 'dashboard';
-        this.lastNonSettingsView = 'dashboard';
         this.isAuthenticated = false;
         this.userRole = null; // 'admin' or 'employee'
         this.adminPassword = '0000'; // Simple password for now
@@ -233,178 +232,11 @@ class AuctusApp {
         }
         
         // Initialize enhanced client portal
-        // Add a small delay to ensure localStorage is fully set
         setTimeout(async () => {
             if (window.clientPortal) {
                 await window.clientPortal.initialize();
             }
         }, 100);
-    }
-
-    async renderClientPortalContent() {
-        // Legacy method - now handled by ClientPortalManager
-        // Keeping for backwards compatibility
-        const authData = JSON.parse(localStorage.getItem('auctus_auth'));
-        const clientId = authData?.clientId;
-        
-        if (!clientId) {
-            document.getElementById('client-portal-content').innerHTML = `
-                <div class="empty-state">
-                    <i class="fas fa-exclamation-triangle"></i>
-                    <h3>Session Error</h3>
-                    <p>Please log in again</p>
-                </div>
-            `;
-            return;
-        }
-        
-        try {
-            // Fetch client's projects
-            const projectsResponse = await fetch('/.netlify/functions/projects');
-            const allProjects = await projectsResponse.json();
-            const clientProjects = allProjects.filter(p => p.client_id == clientId);
-            
-            // Fetch client updates
-            const updatesResponse = await fetch(`/.netlify/functions/client-updates?client_id=${clientId}`);
-            const updates = await updatesResponse.json();
-            
-            const content = `
-                <div class="client-portal-dashboard">
-                    <h1 style="margin-bottom: 2rem;">
-                        <i class="fas fa-home"></i> Welcome Back!
-                    </h1>
-                    
-                    <!-- Projects Section -->
-                    <div class="settings-card" style="margin-bottom: 2rem;">
-                        <div class="settings-card-header">
-                            <i class="fas fa-project-diagram"></i>
-                            <h3>Your Projects</h3>
-                        </div>
-                        <div class="settings-card-body">
-                            ${clientProjects.length > 0 ? `
-                                <div class="client-projects-grid">
-                                    ${clientProjects.map(project => `
-                                        <div class="client-project-card">
-                                            <div class="project-header">
-                                                <h4>${project.name}</h4>
-                                                <span class="status-badge status-${project.status}">${project.status}</span>
-                                            </div>
-                                            ${project.description ? `<p>${project.description}</p>` : ''}
-                                            <div class="project-meta">
-                                                <div><i class="fas fa-calendar"></i> ${new Date(project.start_date).toLocaleDateString()}</div>
-                                                ${project.end_date ? `<div><i class="fas fa-flag-checkered"></i> ${new Date(project.end_date).toLocaleDateString()}</div>` : ''}
-                                            </div>
-                                        </div>
-                                    `).join('')}
-                                </div>
-                            ` : `
-                                <div class="empty-state">
-                                    <i class="fas fa-project-diagram"></i>
-                                    <p>No projects yet</p>
-                                </div>
-                            `}
-                        </div>
-                    </div>
-                    
-                    <!-- Updates Section -->
-                    <div class="settings-card" style="margin-bottom: 2rem;">
-                        <div class="settings-card-header">
-                            <i class="fas fa-bullhorn"></i>
-                            <h3>Updates from Auctus</h3>
-                        </div>
-                        <div class="settings-card-body">
-                            ${updates.length > 0 ? `
-                                <div class="updates-list">
-                                    ${updates.map(update => `
-                                        <div class="update-item">
-                                            <div class="update-header">
-                                                <h4>${update.title}</h4>
-                                                <span class="update-date">${new Date(update.created_at).toLocaleDateString()}</span>
-                                            </div>
-                                            <p>${update.content}</p>
-                                            <div class="update-footer">
-                                                <small><i class="fas fa-user"></i> ${update.created_by}</small>
-                                            </div>
-                                        </div>
-                                    `).join('')}
-                                </div>
-                            ` : `
-                                <div class="empty-state">
-                                    <i class="fas fa-inbox"></i>
-                                    <p>No updates yet</p>
-                                </div>
-                            `}
-                        </div>
-                    </div>
-                    
-                    <!-- Message Section -->
-                    <div class="settings-card">
-                        <div class="settings-card-header">
-                            <i class="fas fa-comments"></i>
-                            <h3>Send us a Message</h3>
-                        </div>
-                        <div class="settings-card-body">
-                            <form id="client-message-form">
-                                <div class="form-group">
-                                    <label>Subject (Optional)</label>
-                                    <input type="text" class="form-input" id="message-subject" placeholder="Message subject">
-                                </div>
-                                <div class="form-group">
-                                    <label>Message *</label>
-                                    <textarea class="form-textarea" id="message-content" rows="4" placeholder="Write your message here..." required></textarea>
-                                </div>
-                                <button type="submit" class="btn-primary">
-                                    <i class="fas fa-paper-plane"></i> Send Message
-                                </button>
-                            </form>
-                        </div>
-                    </div>
-                </div>
-            `;
-            
-            document.getElementById('client-portal-content').innerHTML = content;
-            
-            // Setup message form
-            document.getElementById('client-message-form').addEventListener('submit', async (e) => {
-                e.preventDefault();
-                const subject = document.getElementById('message-subject').value;
-                const message = document.getElementById('message-content').value;
-                
-                try {
-                    const response = await fetch('/.netlify/functions/client-messages', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({
-                            client_id: clientId,
-                            subject: subject || 'No Subject',
-                            message: message,
-                            created_by: authData.clientName
-                        })
-                    });
-                    
-                    if (response.ok) {
-                        alert('Message sent successfully!');
-                        document.getElementById('message-subject').value = '';
-                        document.getElementById('message-content').value = '';
-                    } else {
-                        alert('Failed to send message');
-                    }
-                } catch (error) {
-                    console.error('Error sending message:', error);
-                    alert('Failed to send message');
-                }
-            });
-            
-        } catch (error) {
-            console.error('Error loading client portal:', error);
-            document.getElementById('client-portal-content').innerHTML = `
-                <div class="empty-state">
-                    <i class="fas fa-exclamation-triangle"></i>
-                    <h3>Error Loading Portal</h3>
-                    <p>Please try refreshing the page</p>
-                </div>
-            `;
-        }
     }
 
     setCurrentUser(userName) {
@@ -443,7 +275,6 @@ class AuctusApp {
     logout() {
         this.isAuthenticated = false;
         this.userRole = null;
-        this.clientData = null;
         localStorage.removeItem('auctus_auth');
         localStorage.removeItem('auctus_token');
         
@@ -548,20 +379,10 @@ class AuctusApp {
             });
         }
 
-        // Settings button toggle
-        const settingsBtn = document.getElementById('settings-btn');
-        if (settingsBtn && !settingsBtn.hasAttribute('data-listener')) {
-            settingsBtn.addEventListener('click', () => {
-                if (this.currentView === 'settings') {
-                    const targetView = this.lastNonSettingsView || 'dashboard';
-                    this.switchView(targetView);
-                } else {
-                    this.lastNonSettingsView = this.currentView || 'dashboard';
-                    this.switchView('settings');
-                }
-            });
-            settingsBtn.setAttribute('data-listener', 'true');
-        }
+        // Settings button
+        document.getElementById('settings-btn').addEventListener('click', () => {
+            this.switchView('settings');
+        });
 
         // Quick action buttons
         document.querySelectorAll('.action-btn').forEach(btn => {
@@ -597,9 +418,6 @@ class AuctusApp {
         targetView.classList.add('active');
 
         this.currentView = viewName;
-        if (viewName !== 'settings') {
-            this.lastNonSettingsView = viewName;
-        }
 
         // Close drawer after selection (mobile only)
         this.closeNavDrawer();
@@ -817,11 +635,14 @@ class AuctusApp {
             case 'finances':
                 await window.viewManager.renderFinancesView();
                 break;
-            case 'notes':
-                await window.viewManager.renderNotesView();
+            case 'messages':
+                await window.viewManager.renderMessagesView();
                 break;
             case 'client-accounts':
                 await window.viewManager.renderClientAccountsView();
+                break;
+            case 'notes':
+                await window.viewManager.renderNotesView();
                 break;
             case 'settings':
                 await window.viewManager.renderSettingsView();
@@ -849,66 +670,7 @@ class AuctusApp {
         }
     }
 
-    toggleStatsLoading(isLoading) {
-        const statElements = document.querySelectorAll('.stat-number');
-        statElements.forEach(element => {
-            if (isLoading) {
-                element.classList.add('stat-loading');
-                element.setAttribute('aria-busy', 'true');
-                element.textContent = '';
-            } else {
-                element.classList.remove('stat-loading');
-                element.removeAttribute('aria-busy');
-            }
-        });
-    }
-
-    setStatNumber(elementId, value, options = {}) {
-        const element = document.getElementById(elementId);
-        if (!element) return;
-
-        const {
-            formatter,
-            fallback = '0',
-            color,
-            resetColor = false
-        } = options;
-
-        element.classList.remove('stat-loading');
-        element.removeAttribute('aria-busy');
-
-        let displayValue = value;
-        if (formatter && typeof formatter === 'function') {
-            displayValue = formatter(value);
-        }
-
-        if (displayValue === undefined || displayValue === null || displayValue === '') {
-            displayValue = fallback;
-        }
-
-        element.textContent = displayValue;
-
-        if (resetColor) {
-            element.style.removeProperty('color');
-        }
-
-        if (color) {
-            element.style.color = color;
-        }
-    }
-
-    setStatError(elementId, message = '--') {
-        const element = document.getElementById(elementId);
-        if (!element) return;
-
-        element.classList.remove('stat-loading');
-        element.removeAttribute('aria-busy');
-        element.textContent = message;
-        element.style.color = 'var(--text-secondary)';
-    }
-
     async updateStats() {
-        this.toggleStatsLoading(true);
         try {
             const clients = await window.storageManager.getClients();
             const projects = await window.storageManager.getProjects();
@@ -935,36 +697,16 @@ class AuctusApp {
             
             const netIncome = grossIncome - subscriptionsCost;
 
-            const safeClients = Array.isArray(clients) ? clients : [];
-            const safeProjects = Array.isArray(projects) ? projects : [];
-            const safeWebsites = Array.isArray(websites) ? websites : [];
-            this.setStatNumber('total-clients', safeClients.length, { fallback: '0', resetColor: true });
-            this.setStatNumber(
-                'active-projects',
-                safeProjects.filter(p => p.status === 'active').length,
-                { fallback: '0', resetColor: true }
-            );
-            this.setStatNumber('total-websites', safeWebsites.length, { fallback: '0', resetColor: true });
-
-            this.setStatNumber(
-                'finance-balance',
-                netIncome,
-                {
-                    formatter: (value) => {
-                        const amount = Math.abs(value).toFixed(2);
-                        const sign = value > 0 ? '+' : value < 0 ? '-' : '';
-                        return `${sign}$${amount}`;
-                    },
-                    fallback: '$0.00',
-                    color: netIncome >= 0 ? '#4CAF50' : '#f44336'
-                }
-            );
+            document.getElementById('total-clients').textContent = Array.isArray(clients) ? clients.length : 0;
+            document.getElementById('active-projects').textContent = 
+                Array.isArray(projects) ? projects.filter(p => p.status === 'active').length : 0;
+            document.getElementById('total-websites').textContent = Array.isArray(websites) ? websites.length : 0;
+            
+            const balanceElement = document.getElementById('finance-balance');
+            balanceElement.textContent = `${netIncome >= 0 ? '+' : ''}$${netIncome.toFixed(2)}`;
+            balanceElement.style.color = netIncome >= 0 ? '#4CAF50' : '#f44336';
         } catch (error) {
             console.error('Error updating stats:', error);
-            ['total-clients', 'active-projects', 'total-websites', 'finance-balance']
-                .forEach(id => this.setStatError(id));
-        } finally {
-            this.toggleStatsLoading(false);
         }
     }
 }
