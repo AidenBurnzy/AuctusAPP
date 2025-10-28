@@ -1,5 +1,9 @@
 // View Manager - Renders different views
 class ViewManager {
+    constructor() {
+        this.clientFilter = 'secured';
+    }
+
     getCurrentUser() {
         return localStorage.getItem('auctus_current_user') || null;
     }
@@ -53,13 +57,55 @@ class ViewManager {
         
         if (clients.length === 0) {
             container.appendChild(this.renderEmptyState('users', 'No clients yet', 'Add your first client to get started'));
+            return;
+        }
+
+        const normalizeType = value => (value || '').toLowerCase();
+        const securedClients = clients.filter(client => normalizeType(client.type) === 'current');
+        const attentionClients = clients.filter(client => normalizeType(client.type) !== 'current');
+
+        const filterWrapper = this.createElement('div', 'clients-filter');
+        const filterOptions = [
+            { key: 'secured', label: 'Secured', count: securedClients.length },
+            { key: 'attention', label: 'Needs Attention', count: attentionClients.length }
+        ];
+
+        filterOptions.forEach(option => {
+            const button = this.createElement('button', 'filter-chip', `${option.label} (${option.count})`);
+            button.type = 'button';
+            if (this.clientFilter === option.key) {
+                button.classList.add('active');
+            }
+            button.addEventListener('click', () => {
+                if (this.clientFilter !== option.key) {
+                    this.clientFilter = option.key;
+                    this.renderClientsView();
+                }
+            });
+            filterWrapper.appendChild(button);
+        });
+
+        container.appendChild(filterWrapper);
+
+        const filteredClients = this.clientFilter === 'secured' ? securedClients : attentionClients;
+        const sectionTitleText = this.clientFilter === 'secured' ? 'Secured Clients' : 'Needs Attention';
+        const section = this.createElement('div', 'list-section');
+        section.appendChild(this.createElement('h3', 'list-section-title', sectionTitleText));
+
+        if (filteredClients.length === 0) {
+            const emptyStateMessage = this.clientFilter === 'secured'
+                ? 'No secured clients yet'
+                : 'No clients currently need attention';
+            section.appendChild(this.renderEmptyState('users', emptyStateMessage, ''));
         } else {
             const listContainer = this.createElement('div', 'list-container');
-            clients.forEach(client => {
+            filteredClients.forEach(client => {
                 listContainer.appendChild(this.renderClientCardElement(client, websites));
             });
-            container.appendChild(listContainer);
+            section.appendChild(listContainer);
         }
+
+        container.appendChild(section);
     }
 
     renderClientCardElement(client, websites = []) {
@@ -78,8 +124,11 @@ class ViewManager {
         titleDiv.appendChild(itemSubtitle);
         header.appendChild(titleDiv);
         
-        const statusClass = client.type === 'current' ? 'status-active' : 'status-potential';
-        const status = this.createElement('span', `item-status ${statusClass}`, client.type);
+        const clientType = (client.type || '').toLowerCase();
+        const isSecured = clientType === 'current';
+        const statusClass = isSecured ? 'status-secured' : 'status-attention';
+        const statusLabel = isSecured ? 'Secured' : 'Needs Attention';
+        const status = this.createElement('span', `item-status ${statusClass}`, statusLabel);
         header.appendChild(status);
         card.appendChild(header);
         
@@ -738,13 +787,18 @@ class ViewManager {
     }
 
     renderEmptyState(icon, title, description) {
-        return `
-            <div class="empty-state">
-                <i class="fas fa-${icon}"></i>
-                <h3>${title}</h3>
-                <p>${description}</p>
-            </div>
-        `;
+        const wrapper = this.createElement('div', 'empty-state');
+        const iconElement = document.createElement('i');
+        iconElement.className = `fas fa-${icon}`;
+        wrapper.appendChild(iconElement);
+
+        wrapper.appendChild(this.createElement('h3', '', title));
+
+        if (description) {
+            wrapper.appendChild(this.createElement('p', '', description));
+        }
+
+        return wrapper;
     }
 
     async renderNotesView() {

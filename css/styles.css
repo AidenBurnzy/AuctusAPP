@@ -710,6 +710,52 @@ body {
     gap: 1rem;
 }
 
+.list-section {
+    margin-top: 1.5rem;
+}
+
+.list-section-title {
+    font-size: 1.1rem;
+    font-weight: 600;
+    margin-bottom: 1rem;
+    color: var(--text-primary);
+}
+
+.clients-filter {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+    margin-bottom: 1rem;
+}
+
+.filter-chip {
+    background: var(--card-bg);
+    border: 1px solid var(--border-color);
+    border-radius: 999px;
+    padding: 0.5rem 1rem;
+    font-size: 0.85rem;
+    font-weight: 500;
+    color: var(--text-secondary);
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.filter-chip:hover {
+    border-color: var(--primary-color);
+    color: var(--primary-color);
+}
+
+.filter-chip.active {
+    background: linear-gradient(135deg, rgba(108, 99, 255, 0.15), rgba(76, 175, 80, 0.15));
+    border-color: var(--primary-color);
+    color: var(--primary-color);
+}
+
+.filter-chip:focus-visible {
+    outline: none;
+    box-shadow: 0 0 0 3px rgba(108, 99, 255, 0.25);
+}
+
 .list-item {
     background: var(--card-bg);
     border: 1px solid var(--border-color);
@@ -757,6 +803,16 @@ body {
 
 .status-potential {
     background: rgba(255, 184, 77, 0.2);
+    color: var(--warning-color);
+}
+
+.status-secured {
+    background: rgba(76, 175, 80, 0.2);
+    color: var(--success-color);
+}
+
+.status-attention {
+    background: rgba(255, 184, 77, 0.25);
     color: var(--warning-color);
 }
 

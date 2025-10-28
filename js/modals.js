@@ -116,15 +116,15 @@ class ModalManager {
         typeSelect.required = true;
         const typeOption1 = document.createElement('option');
         typeOption1.value = 'current';
-        typeOption1.textContent = 'Current Client';
+        typeOption1.textContent = 'Secured Client';
         typeOption1.selected = client?.type === 'current';
         const typeOption2 = document.createElement('option');
         typeOption2.value = 'potential';
-        typeOption2.textContent = 'Potential Client';
+        typeOption2.textContent = 'Needs Attention';
         typeOption2.selected = client?.type === 'potential';
         typeSelect.appendChild(typeOption1);
         typeSelect.appendChild(typeOption2);
-        form.appendChild(createFormGroup('Client Type *', typeSelect));
+        form.appendChild(createFormGroup('Client Status *', typeSelect));
 
         // Notes textarea
         const notesTextarea = document.createElement('textarea');
