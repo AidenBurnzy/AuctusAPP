@@ -4,10 +4,16 @@
 
 /*.js
   Content-Type: application/javascript
+  Cache-Control: public, max-age=0, must-revalidate
 
 /*.css
   Content-Type: text/css
+  Cache-Control: public, max-age=0, must-revalidate
 
 /sw.js
   Content-Type: application/javascript
   Service-Worker-Allowed: /
+  Cache-Control: public, max-age=0, must-revalidate
+
+/index.html
+  Cache-Control: public, max-age=0, must-revalidate
