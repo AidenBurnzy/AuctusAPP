@@ -56,14 +56,23 @@ class ModalManager {
             return group;
         };
 
-        // Name input
-        const nameInput = document.createElement('input');
-        nameInput.type = 'text';
-        nameInput.className = 'form-input';
-        nameInput.name = 'name';
-        nameInput.value = client?.name || '';
-        nameInput.required = true;
-        form.appendChild(createFormGroup('Client Name *', nameInput));
+    // Company input (business name is now required)
+    const companyInput = document.createElement('input');
+    companyInput.type = 'text';
+    companyInput.className = 'form-input';
+    companyInput.name = 'company';
+    companyInput.value = client?.company || '';
+    companyInput.required = true;
+    form.appendChild(createFormGroup('Business Name *', companyInput));
+
+    // Contact name input (optional)
+    const nameInput = document.createElement('input');
+    nameInput.type = 'text';
+    nameInput.className = 'form-input';
+    nameInput.name = 'name';
+    nameInput.value = client?.name || '';
+    nameInput.placeholder = 'Primary contact (optional)';
+    form.appendChild(createFormGroup('Primary Contact Name', nameInput));
 
         // Email input
         const emailInput = document.createElement('input');
@@ -80,14 +89,6 @@ class ModalManager {
         phoneInput.name = 'phone';
         phoneInput.value = client?.phone || '';
         form.appendChild(createFormGroup('Phone', phoneInput));
-
-        // Company input
-        const companyInput = document.createElement('input');
-        companyInput.type = 'text';
-        companyInput.className = 'form-input';
-        companyInput.name = 'company';
-        companyInput.value = client?.company || '';
-        form.appendChild(createFormGroup('Company', companyInput));
 
         // Website select
         const websites = await window.storageManager.getWebsites();
@@ -1270,7 +1271,9 @@ class ModalManager {
 
         // Check if user profile is set
         if (!currentUser && !isEdit) {
-            alert('Please set your user profile in Settings first!');
+                if (window.app && typeof window.app.showNotification === 'function') {
+                    window.app.showNotification('Please set your user profile in Settings first!', 'info');
+                }
             window.app.showView('settings');
             return;
         }

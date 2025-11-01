@@ -3,7 +3,15 @@ class StorageManager {
     constructor() {
         this.API_BASE = '/.netlify/functions';
         this.USE_API = true; // Set to false to use localStorage only
+        this.debug = false;
         this.initializeStorage();
+    }
+
+    logDebug(...args) {
+        if (!this.debug) {
+            return;
+        }
+        console.log(...args);
     }
 
     initializeStorage() {
@@ -37,8 +45,8 @@ class StorageManager {
     }
 
     async apiRequest(endpoint, method = 'GET', data = null) {
-        const url = `${this.API_BASE}/${endpoint}`;
-        console.log(`API Request: ${method} ${url}`);
+    const url = `${this.API_BASE}/${endpoint}`;
+    this.logDebug(`API Request: ${method} ${url}`);
         try {
             const options = {
                 method,
@@ -53,14 +61,14 @@ class StorageManager {
             
             if (data) {
                 options.body = JSON.stringify(data);
-                console.log('Request data:', data);
+                this.logDebug('Request data:', data);
             }
             const response = await fetch(url, options);
-            console.log(`API Response: ${response.status} ${response.statusText}`);
+            this.logDebug(`API Response: ${response.status} ${response.statusText}`);
             
             // Get the response text first
             const responseText = await response.text();
-            console.log('Raw API response:', responseText);
+            this.logDebug('Raw API response:', responseText);
             
             if (!response.ok) {
                 console.error('API error response:', responseText);
@@ -71,7 +79,7 @@ class StorageManager {
             let result;
             try {
                 result = JSON.parse(responseText);
-                console.log('Parsed API result:', result, 'Type:', typeof result, 'Is Array:', Array.isArray(result));
+                this.logDebug('Parsed API result:', result, 'Type:', typeof result, 'Is Array:', Array.isArray(result));
             } catch (parseError) {
                 console.error('Failed to parse JSON:', parseError);
                 throw new Error('Invalid JSON response from API');
@@ -90,9 +98,9 @@ class StorageManager {
     async getClients() {
         if (this.USE_API) {
             try {
-                console.log('[StorageManager] Fetching clients from API...');
+                this.logDebug('[StorageManager] Fetching clients from API...');
                 const result = await this.apiRequest('clients');
-                console.log('[StorageManager] API returned clients:', result);
+                this.logDebug('[StorageManager] API returned clients:', result);
                 // Update localStorage as cache
                 if (Array.isArray(result)) {
                     localStorage.setItem('auctus_clients', JSON.stringify(result));
@@ -103,16 +111,16 @@ class StorageManager {
                 return JSON.parse(localStorage.getItem('auctus_clients') || '[]');
             }
         }
-        console.log('[StorageManager] Using localStorage directly for clients');
+    this.logDebug('[StorageManager] Using localStorage directly for clients');
         return JSON.parse(localStorage.getItem('auctus_clients') || '[]');
     }
 
     async addClient(client) {
-        console.log('[StorageManager] Adding client:', client);
+    this.logDebug('[StorageManager] Adding client:', client);
         if (this.USE_API) {
             try {
                 const result = await this.apiRequest('clients', 'POST', client);
-                console.log('[StorageManager] Client added via API:', result);
+                this.logDebug('[StorageManager] Client added via API:', result);
                 // Refresh cache
                 await this.getClients();
                 return result;
@@ -126,7 +134,7 @@ class StorageManager {
         client.createdAt = new Date().toISOString();
         clients.push(client);
         localStorage.setItem('auctus_clients', JSON.stringify(clients));
-        console.log('[StorageManager] Client added to localStorage:', client);
+    this.logDebug('[StorageManager] Client added to localStorage:', client);
         return client;
     }
 

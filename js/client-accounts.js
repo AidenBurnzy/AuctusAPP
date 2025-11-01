@@ -1,5 +1,80 @@
 // Client Account Manager
 class ClientAccountManager {
+    constructor() {
+        this.debug = false;
+        this.pendingClientViewRefresh = false;
+    }
+
+    escapeHTML(value) {
+        if (value === null || value === undefined) {
+            return '';
+        }
+        return String(value).replace(/[&<>'"]/g, (char) => ({
+            '&': '&amp;',
+            '<': '&lt;',
+            '>': '&gt;',
+            '"': '&quot;',
+            "'": '&#39;'
+        })[char] || char);
+    }
+
+    logDebug(...args) {
+        if (!this.debug) {
+            return;
+        }
+        console.log(...args);
+    }
+
+    determineMessageOrigin(message, clientIdentifiers = [], adminIdentifiers = []) {
+        const createdBy = (message?.created_by || '').trim().toLowerCase();
+        if (!createdBy) {
+            return 'admin';
+        }
+
+        const normalizedIdentifiers = clientIdentifiers
+            .map(identifier => (identifier || '').trim().toLowerCase())
+            .filter(Boolean);
+
+        const normalizedAdminIdentifiers = adminIdentifiers
+            .map(identifier => (identifier || '').trim().toLowerCase())
+            .filter(Boolean);
+
+        if (normalizedAdminIdentifiers.some(identifier => createdBy === identifier || createdBy.includes(identifier))) {
+            return 'admin';
+        }
+
+        if (normalizedIdentifiers.some(identifier => createdBy === identifier || createdBy.includes(identifier))) {
+            return 'client';
+        }
+
+        const adminIndicators = ['admin', 'auctus', 'team', 'support'];
+        if (adminIndicators.some(indicator => createdBy.includes(indicator))) {
+            return 'admin';
+        }
+
+        return 'admin';
+    }
+
+    queueClientViewRefresh() {
+        this.pendingClientViewRefresh = true;
+    }
+
+    async flushClientViewRefresh() {
+        if (!this.pendingClientViewRefresh) {
+            return;
+        }
+
+        this.pendingClientViewRefresh = false;
+        if (window.viewManager && typeof window.viewManager.renderClientAccountsView === 'function') {
+            await window.viewManager.renderClientAccountsView();
+        }
+    }
+
+    notify(message, type = 'info') {
+        if (window.app && typeof window.app.showNotification === 'function') {
+            window.app.showNotification(message, type);
+        }
+    }
     async openCreateAccountModal() {
         const clients = await window.storageManager.getClients();
         
@@ -9,6 +84,13 @@ class ClientAccountManager {
         const clientsWithAccess = portalUsers.map(u => u.client_id);
         const availableClients = clients.filter(c => !clientsWithAccess.includes(c.id));
         
+        const clientOptions = availableClients.map(client => {
+            const id = this.escapeHTML(String(client.id ?? ''));
+            const name = this.escapeHTML(client.name || 'Client');
+            const company = client.company ? ` - ${this.escapeHTML(client.company)}` : '';
+            return `<option value="${id}">${name}${company}</option>`;
+        }).join('');
+
         const modalHtml = `
             <div class="modal-overlay" onclick="if(event.target === this) this.remove()">
                 <div class="modal" style="max-width: 500px; border-radius: 20px; margin: auto;">
@@ -24,9 +106,7 @@ class ClientAccountManager {
                                 <label>Select Client *</label>
                                 <select class="form-select" name="client_id" required>
                                     <option value="">Choose a client...</option>
-                                    ${availableClients.map(c => `
-                                        <option value="${c.id}">${c.name}${c.company ? ` - ${c.company}` : ''}</option>
-                                    `).join('')}
+                                    ${clientOptions}
                                 </select>
                             </div>
                             <div class="form-group">
@@ -74,11 +154,11 @@ class ClientAccountManager {
                     window.app.showNotification('Client account created successfully!');
                 } else {
                     const error = await response.json();
-                    alert(error.error || 'Failed to create account');
+                    this.notify(error.error || 'Failed to create account', 'error');
                 }
             } catch (error) {
                 console.error('Error creating account:', error);
-                alert('Failed to create account');
+                this.notify('Failed to create account', 'error');
             }
         });
     }
@@ -89,7 +169,7 @@ class ClientAccountManager {
         const user = users.find(u => u.id === userId);
         
         if (!user) {
-            alert('User not found');
+            this.notify('User not found', 'error');
             return;
         }
         
@@ -152,11 +232,11 @@ class ClientAccountManager {
                     await window.viewManager.renderClientAccountsView();
                     window.app.showNotification('Account updated successfully!');
                 } else {
-                    alert('Failed to update account');
+                    this.notify('Failed to update account', 'error');
                 }
             } catch (error) {
                 console.error('Error updating account:', error);
-                alert('Failed to update account');
+                this.notify('Failed to update account', 'error');
             }
         });
     }
@@ -175,11 +255,11 @@ class ClientAccountManager {
                 await window.viewManager.renderClientAccountsView();
                 window.app.showNotification('Account deleted successfully');
             } else {
-                alert('Failed to delete account');
+                this.notify('Failed to delete account', 'error');
             }
         } catch (error) {
             console.error('Error deleting account:', error);
-            alert('Failed to delete account');
+            this.notify('Failed to delete account', 'error');
         }
     }
     
@@ -243,11 +323,11 @@ class ClientAccountManager {
                 } else {
                     const errorText = await response.text();
                     console.error('Failed to post update:', errorText);
-                    alert('Failed to post update');
+                    this.notify('Failed to post update', 'error');
                 }
             } catch (error) {
                 console.error('Error posting update:', error);
-                alert('Failed to post update');
+                this.notify('Failed to post update', 'error');
             }
         });
     }
@@ -299,7 +379,7 @@ class ClientAccountManager {
                     created_by: currentUser
                 };
                 
-                console.log('Sending admin message:', payload);
+                this.logDebug('Sending admin message:', payload);
                 
                 const response = await fetch('/.netlify/functions/client-messages', {
                     method: 'POST',
@@ -315,11 +395,11 @@ class ClientAccountManager {
                 } else {
                     const errorText = await response.text();
                     console.error('Error response:', errorText);
-                    alert('Failed to send message');
+                    this.notify('Failed to send message', 'error');
                 }
             } catch (error) {
                 console.error('Error sending message:', error);
-                alert('Failed to send message: ' + error.message);
+                this.notify(`Failed to send message: ${error.message}`, 'error');
             }
         });
     }
@@ -425,6 +505,296 @@ class ClientAccountManager {
         document.body.insertAdjacentHTML('beforeend', modalHtml);
     }
     
+    async openMessageThread(clientId, businessNameHint = 'Client', contactNameHint = '') {
+        try {
+            const safeClientId = String(clientId);
+            const [messagesRes, clients] = await Promise.all([
+                fetch('/.netlify/functions/client-messages'),
+                window.storageManager ? window.storageManager.getClients() : Promise.resolve([])
+            ]);
+
+            if (!messagesRes.ok) {
+                throw new Error(`Failed to load messages (${messagesRes.status})`);
+            }
+
+            let allMessages = await messagesRes.json();
+            if (!Array.isArray(allMessages)) {
+                allMessages = [];
+            }
+
+            const clientMessages = allMessages
+                .filter(msg => String(msg.client_id) === safeClientId && !msg.is_archived)
+                .sort((a, b) => new Date(a.created_at) - new Date(b.created_at));
+
+            const clientRecord = Array.isArray(clients)
+                ? clients.find(c => String(c.id) === safeClientId)
+                : null;
+
+            const companySource = clientRecord?.company || businessNameHint || 'Client';
+            const businessNameRaw = typeof companySource === 'string' ? companySource.trim() : String(companySource);
+            const contactSource = clientRecord?.name || contactNameHint || '';
+            const contactNameRaw = contactSource ? (typeof contactSource === 'string' ? contactSource.trim() : String(contactSource)) : '';
+            const contactEmailRaw = clientRecord?.email || '';
+            const businessName = this.escapeHTML(businessNameRaw || 'Client');
+            const contactName = this.escapeHTML(contactNameRaw);
+            const contactEmail = this.escapeHTML(contactEmailRaw);
+
+            const unreadMessages = clientMessages.filter(msg => !msg.is_read);
+            if (unreadMessages.length > 0) {
+                await Promise.all(unreadMessages.map(msg =>
+                    fetch('/.netlify/functions/client-messages', {
+                        method: 'PUT',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ id: msg.id, is_read: true })
+                    })
+                ));
+
+                clientMessages.forEach(msg => {
+                    msg.is_read = true;
+                });
+            }
+
+            const overlay = document.createElement('div');
+            overlay.className = 'modal-overlay message-thread-overlay';
+            overlay.innerHTML = `
+                <div class="modal thread-modal" style="max-width: 720px; border-radius: 20px; margin: auto;">
+                    <div class="modal-header">
+                        <h3><i class="fas fa-comments"></i> Messages · ${businessName}</h3>
+                        <button class="close-btn" data-thread-close>
+                            <i class="fas fa-times"></i>
+                        </button>
+                    </div>
+                    <div class="modal-content thread-modal-content">
+                        <div class="thread-client-meta">
+                            <span class="thread-client-label"><i class="fas fa-building"></i> ${businessName}</span>
+                            ${contactName ? `<span class="thread-client-contact"><i class="fas fa-user"></i> ${contactName}</span>` : ''}
+                            ${contactEmail ? `<span class="thread-client-contact"><i class="fas fa-envelope"></i> ${contactEmail}</span>` : ''}
+                        </div>
+                        <div class="thread-messages" id="thread-messages-container"></div>
+                        <form id="thread-message-form" class="thread-compose">
+                            <textarea id="thread-message-input" placeholder="Type a message..." rows="2" required></textarea>
+                            <button type="submit" class="thread-send-btn" title="Send">
+                                <i class="fas fa-paper-plane"></i>
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            `;
+
+            const messagesContainer = overlay.querySelector('#thread-messages-container');
+            const form = overlay.querySelector('#thread-message-form');
+            const textarea = overlay.querySelector('#thread-message-input');
+
+            const clientIdentifiers = [contactNameRaw, clientRecord?.name, businessNameRaw];
+            const adminIdentifier = localStorage.getItem('auctus_current_user') || 'Auctus Admin';
+
+            const renderThread = (messages = []) => {
+                messagesContainer.innerHTML = '';
+
+                if (messages.length === 0) {
+                    const emptyState = document.createElement('div');
+                    emptyState.className = 'empty-thread-state';
+                    emptyState.innerHTML = `
+                        <i class="fas fa-comments"></i>
+                        <p>No messages yet. Start the conversation below.</p>
+                    `;
+                    messagesContainer.appendChild(emptyState);
+                    return;
+                }
+
+                let lastDateLabel = '';
+                messages.forEach(message => {
+                    const createdAt = new Date(message.created_at);
+                    const dateLabel = createdAt.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' });
+
+                    if (dateLabel !== lastDateLabel) {
+                        const divider = document.createElement('div');
+                        divider.className = 'thread-day-divider';
+                        divider.textContent = dateLabel;
+                        messagesContainer.appendChild(divider);
+                        lastDateLabel = dateLabel;
+                    }
+
+                    const authorType = this.determineMessageOrigin(message, clientIdentifiers, [adminIdentifier]);
+                    const isAdmin = authorType === 'admin';
+                    const messageRow = document.createElement('div');
+                    messageRow.className = `thread-message ${isAdmin ? 'from-admin' : 'from-client'}`;
+
+                    const bubble = document.createElement('div');
+                    bubble.className = 'thread-bubble';
+
+                    const textParagraph = document.createElement('p');
+                    textParagraph.textContent = message.message || message.subject || '';
+                    bubble.appendChild(textParagraph);
+
+                    const meta = document.createElement('span');
+                    meta.className = 'thread-bubble-meta';
+                    meta.textContent = `${createdAt.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}${isAdmin ? ' · You' : ''}`;
+                    bubble.appendChild(meta);
+
+                    messageRow.appendChild(bubble);
+                    messagesContainer.appendChild(messageRow);
+                });
+
+                requestAnimationFrame(() => {
+                    messagesContainer.scrollTop = messagesContainer.scrollHeight;
+                });
+            };
+
+            renderThread(clientMessages);
+
+            const refreshThread = async ({ silent = false } = {}) => {
+                const refreshRes = await fetch('/.netlify/functions/client-messages');
+                if (!refreshRes.ok) {
+                    throw new Error('Failed to refresh conversation');
+                }
+
+                let refreshedMessages = await refreshRes.json();
+                if (!Array.isArray(refreshedMessages)) {
+                    refreshedMessages = [];
+                }
+
+                const updatedMessages = refreshedMessages
+                    .filter(msg => String(msg.client_id) === safeClientId && !msg.is_archived)
+                    .sort((a, b) => new Date(a.created_at) - new Date(b.created_at));
+
+                const unread = updatedMessages.filter(msg => !msg.is_read);
+                if (unread.length > 0) {
+                    await Promise.all(unread.map(msg =>
+                        fetch('/.netlify/functions/client-messages', {
+                            method: 'PUT',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ id: msg.id, is_read: true })
+                        })
+                    ));
+
+                    updatedMessages.forEach(msg => {
+                        msg.is_read = true;
+                    });
+                }
+
+                renderThread(updatedMessages);
+                if (!silent) {
+                    this.queueClientViewRefresh();
+                }
+
+                return updatedMessages;
+            };
+
+            let pollHandle = null;
+            let isPolling = false;
+
+            const startPolling = () => {
+                if (pollHandle) {
+                    return;
+                }
+
+                pollHandle = setInterval(async () => {
+                    if (isPolling) {
+                        return;
+                    }
+
+                    isPolling = true;
+                    try {
+                        await refreshThread({ silent: true });
+                    } catch (error) {
+                        this.logDebug('Message thread poll error:', error);
+                    } finally {
+                        isPolling = false;
+                    }
+                }, 5000);
+            };
+
+            function stopPolling() {
+                if (pollHandle) {
+                    clearInterval(pollHandle);
+                    pollHandle = null;
+                }
+                isPolling = false;
+            }
+
+            startPolling();
+
+            const closeThread = () => {
+                stopPolling();
+                if (overlay.parentNode) {
+                    overlay.remove();
+                }
+                document.removeEventListener('keydown', handleKeyDown, true);
+                this.flushClientViewRefresh();
+            };
+
+            function handleKeyDown(event) {
+                if (event.key === 'Escape') {
+                    event.preventDefault();
+                    closeThread();
+                }
+            }
+
+            overlay.addEventListener('click', (event) => {
+                if (event.target === overlay || event.target.closest('[data-thread-close]')) {
+                    closeThread();
+                }
+            });
+
+            document.addEventListener('keydown', handleKeyDown, true);
+            document.body.appendChild(overlay);
+
+            if (textarea) {
+                textarea.addEventListener('input', () => {
+                    textarea.style.height = 'auto';
+                    textarea.style.height = `${Math.min(textarea.scrollHeight, 160)}px`;
+                });
+
+                textarea.addEventListener('keydown', (event) => {
+                    if (event.key === 'Enter' && !event.shiftKey) {
+                        event.preventDefault();
+                        form.dispatchEvent(new Event('submit', { cancelable: true }));
+                    }
+                });
+            }
+
+            form.addEventListener('submit', async (event) => {
+                event.preventDefault();
+                const content = textarea.value.trim();
+                if (!content) {
+                    return;
+                }
+
+                const currentUser = localStorage.getItem('auctus_current_user') || 'Auctus Admin';
+
+                try {
+                    const response = await fetch('/.netlify/functions/client-messages', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            client_id: clientId,
+                            subject: 'Conversation',
+                            message: content,
+                            created_by: currentUser
+                        })
+                    });
+                    if (!response.ok) {
+                        throw new Error('Failed to send message');
+                    }
+
+                    textarea.value = '';
+                    textarea.style.height = 'auto';
+                    await refreshThread();
+                    window.app.showNotification('Message sent!');
+                } catch (error) {
+                    console.error('Error sending message:', error);
+                    this.notify('Failed to send message. Please try again.', 'error');
+                }
+            });
+
+            this.queueClientViewRefresh();
+        } catch (error) {
+            console.error('Error opening message thread:', error);
+            this.notify('Unable to open message thread. Please try again.', 'error');
+        }
+    }
+
     async viewMessage(messageId) {
         try {
             const response = await fetch('/.netlify/functions/client-messages');
@@ -434,14 +804,13 @@ class ClientAccountManager {
             
             const messages = await response.json();
             if (!Array.isArray(messages)) {
-                alert('Invalid response from server');
                 return;
             }
             
             const message = messages.find(m => m.id === messageId);
             
             if (!message) {
-                alert('Message not found');
+                this.notify('Message not found', 'error');
                 return;
             }
         
@@ -485,7 +854,7 @@ class ClientAccountManager {
             document.body.insertAdjacentHTML('beforeend', modalHtml);
         } catch (error) {
             console.error('Error viewing message:', error);
-            alert('Failed to load message');
+            this.notify('Failed to load message', 'error');
         }
     }
     
@@ -529,11 +898,11 @@ class ClientAccountManager {
                 await window.viewManager.renderClientAccountsView();
                 window.app.showNotification('Message archived');
             } else {
-                alert('Failed to archive message');
+                this.notify('Failed to archive message', 'error');
             }
         } catch (error) {
             console.error('Error archiving message:', error);
-            alert('Failed to archive message');
+            this.notify('Failed to archive message', 'error');
         }
     }
 
@@ -551,11 +920,11 @@ class ClientAccountManager {
                 await window.viewManager.renderClientAccountsView();
                 window.app.showNotification('Message deleted successfully');
             } else {
-                alert('Failed to delete message');
+                this.notify('Failed to delete message', 'error');
             }
         } catch (error) {
             console.error('Error deleting message:', error);
-            alert('Failed to delete message');
+            this.notify('Failed to delete message', 'error');
         }
     }
 }

@@ -3,6 +3,11 @@ class ClientPortalManager {
     constructor() {
         this.currentView = 'dashboard';
         this.clientData = null;
+        this.debug = false;
+        this.portalLayoutDefaults = null;
+        this.activeResizeHandler = null;
+        this.messagesPollInterval = null;
+        this.isMessagesPolling = false;
     }
 
     // Helper method for authenticated fetch requests
@@ -29,6 +34,172 @@ class ClientPortalManager {
         return response.json();
     }
 
+    escapeHTML(value) {
+        if (value === null || value === undefined) {
+            return '';
+        }
+        return String(value).replace(/[&<>'"]/g, (char) => ({
+            '&': '&amp;',
+            '<': '&lt;',
+            '>': '&gt;',
+            '"': '&quot;',
+            "'": '&#39;'
+        })[char] || char);
+    }
+
+    logDebug(...args) {
+        if (!this.debug) {
+            return;
+        }
+        console.log(...args);
+    }
+
+    cachePortalLayoutDefaults() {
+        const portalContent = document.getElementById('client-portal-content');
+        if (!portalContent || this.portalLayoutDefaults) {
+            return;
+        }
+
+        this.portalLayoutDefaults = {
+            padding: portalContent.style.padding,
+            paddingTop: portalContent.style.paddingTop,
+            paddingBottom: portalContent.style.paddingBottom,
+            paddingLeft: portalContent.style.paddingLeft,
+            paddingRight: portalContent.style.paddingRight,
+            overflow: portalContent.style.overflow,
+            overflowY: portalContent.style.overflowY,
+            display: portalContent.style.display,
+            flexDirection: portalContent.style.flexDirection
+        };
+    }
+
+    restorePortalLayout() {
+        const portalContent = document.getElementById('client-portal-content');
+        if (!portalContent || !this.portalLayoutDefaults) {
+            return;
+        }
+
+        Object.assign(portalContent.style, {
+            padding: this.portalLayoutDefaults.padding,
+            paddingTop: this.portalLayoutDefaults.paddingTop,
+            paddingBottom: this.portalLayoutDefaults.paddingBottom,
+            paddingLeft: this.portalLayoutDefaults.paddingLeft,
+            paddingRight: this.portalLayoutDefaults.paddingRight,
+            overflow: this.portalLayoutDefaults.overflow,
+            overflowY: this.portalLayoutDefaults.overflowY,
+            display: this.portalLayoutDefaults.display,
+            flexDirection: this.portalLayoutDefaults.flexDirection
+        });
+    }
+
+    resetViewLayout(container) {
+        if (this.activeResizeHandler) {
+            window.removeEventListener('resize', this.activeResizeHandler);
+            this.activeResizeHandler = null;
+        }
+
+        this.restorePortalLayout();
+        this.stopMessagesPolling();
+
+        if (container) {
+            container.removeAttribute('style');
+        }
+    }
+
+    applyMessagesLayout(container) {
+        const portalContent = document.getElementById('client-portal-content');
+        this.cachePortalLayoutDefaults();
+
+        if (portalContent) {
+            portalContent.style.paddingTop = 'calc(70px + 0.5rem)';
+            portalContent.style.paddingLeft = '1rem';
+            portalContent.style.paddingRight = '1rem';
+            portalContent.style.paddingBottom = '0';
+            portalContent.style.overflow = 'hidden';
+            portalContent.style.overflowY = 'hidden';
+            portalContent.style.display = 'flex';
+            portalContent.style.flexDirection = 'column';
+        }
+
+        if (container) {
+            container.style.display = 'flex';
+            container.style.flexDirection = 'column';
+            container.style.padding = '0';
+            container.style.margin = '0';
+            container.style.gap = '0';
+            container.style.height = '100%';
+            container.style.flex = '1';
+            container.style.minHeight = '0';
+            container.style.overflow = 'hidden';
+        }
+    }
+
+    adjustMessagesViewport(messagesRoot) {
+        if (!messagesRoot) {
+            return;
+        }
+
+        const portalContent = document.getElementById('client-portal-content');
+        if (!portalContent) {
+            return;
+        }
+
+        const nav = document.querySelector('#client-portal-container .client-portal-nav');
+        const navHeight = nav ? nav.offsetHeight : 0;
+        const contentRect = portalContent.getBoundingClientRect();
+        const availableHeight = window.innerHeight - contentRect.top - navHeight;
+
+        if (availableHeight > 0) {
+            messagesRoot.style.height = `${availableHeight}px`;
+            messagesRoot.style.maxHeight = `${availableHeight}px`;
+        }
+    }
+
+    stopMessagesPolling() {
+        if (this.messagesPollInterval) {
+            clearInterval(this.messagesPollInterval);
+            this.messagesPollInterval = null;
+        }
+        this.isMessagesPolling = false;
+    }
+
+    startMessagesPolling(handler, interval = 5000) {
+        this.stopMessagesPolling();
+        if (typeof handler !== 'function') {
+            return;
+        }
+        this.messagesPollInterval = setInterval(async () => {
+            if (this.isMessagesPolling) {
+                return;
+            }
+            this.isMessagesPolling = true;
+            try {
+                await handler();
+            } catch (error) {
+                this.logDebug('messagesPoll error:', error);
+            } finally {
+                this.isMessagesPolling = false;
+            }
+        }, interval);
+    }
+
+    determineMessageAuthor(message, authData) {
+        const createdBy = (message?.created_by || '').trim().toLowerCase();
+        const clientName = (authData?.clientName || this.clientData?.name || '').trim().toLowerCase();
+
+        if (createdBy && clientName && createdBy === clientName) {
+            return 'client';
+        }
+
+        const adminIndicators = ['admin', 'auctus', 'team', 'support'];
+        if (createdBy && adminIndicators.some(indicator => createdBy.includes(indicator))) {
+            return 'admin';
+        }
+
+        // Default to admin when author cannot be matched to the client explicitly.
+        return 'admin';
+    }
+
     async initialize() {
         const authData = JSON.parse(localStorage.getItem('auctus_auth'));
         if (!authData || !authData.clientId) {
@@ -44,7 +215,7 @@ class ClientPortalManager {
                 company: authData.company || 'N/A'
             };
             
-            console.log('Client portal initializing with data:', this.clientData);
+            this.logDebug('Client portal initializing with data:', this.clientData);
             this.renderNavigation();
             await this.renderView(this.currentView);
         } catch (error) {
@@ -55,7 +226,7 @@ class ClientPortalManager {
 
     renderNavigation() {
         const container = document.getElementById('client-portal-container');
-        console.log('renderNavigation - Container found:', !!container);
+        this.logDebug('renderNavigation - Container found:', !!container);
         if (!container) {
             console.error('client-portal-container not found!');
             return;
@@ -98,7 +269,7 @@ class ClientPortalManager {
         if (existingNav) {
             existingNav.remove();
         }
-        console.log('Inserting navigation HTML at bottom');
+        this.logDebug('Inserting navigation HTML at bottom');
         container.insertAdjacentHTML('beforeend', navHtml);
     }
 
@@ -125,9 +296,10 @@ class ClientPortalManager {
     }
 
     async renderView(view) {
-        console.log('renderView called with view:', view);
+        this.logDebug('renderView called with view:', view);
         const contentArea = document.getElementById('client-portal-main-content') || this.createMainContentArea();
-        console.log('Content area element:', !!contentArea);
+        this.resetViewLayout(contentArea);
+        this.logDebug('Content area element:', !!contentArea);
         
         switch(view) {
             case 'dashboard':
@@ -156,12 +328,12 @@ class ClientPortalManager {
 
     createMainContentArea() {
         const container = document.getElementById('client-portal-content');
-        console.log('createMainContentArea - container:', !!container);
+        this.logDebug('createMainContentArea - container:', !!container);
         const mainContent = document.createElement('div');
         mainContent.id = 'client-portal-main-content';
         mainContent.className = 'client-portal-main-content';
         container.appendChild(mainContent);
-        console.log('Created main content area, appended to container');
+        this.logDebug('Created main content area, appended to container');
         return mainContent;
     }
 
@@ -346,36 +518,7 @@ class ClientPortalManager {
 
                     ${safeUpdates.length > 0 ? `
                         <div class="updates-timeline">
-                            ${safeUpdates.map(update => `
-                                <div class="timeline-item">
-                                    <div class="timeline-marker">
-                                        <i class="fas fa-circle"></i>
-                                    </div>
-                                    <div class="timeline-content">
-                                        <div class="update-card">
-                                            <div class="update-header">
-                                                <h3>${update.title}</h3>
-                                                <span class="update-date">
-                                                    <i class="fas fa-calendar"></i>
-                                                    ${new Date(update.created_at).toLocaleDateString('en-US', { 
-                                                        year: 'numeric', 
-                                                        month: 'long', 
-                                                        day: 'numeric' 
-                                                    })}
-                                                </span>
-                                            </div>
-                                            <div class="update-body">
-                                                <p>${update.content}</p>
-                                            </div>
-                                            <div class="update-footer">
-                                                <span class="update-author">
-                                                    <i class="fas fa-user"></i> ${update.created_by}
-                                                </span>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                            `).join('')}
+                            ${safeUpdates.map(update => this.renderTimelineItem(update)).join('')}
                         </div>
                     ` : `
                         <div class="empty-state">
@@ -398,8 +541,8 @@ class ClientPortalManager {
 
         const authData = JSON.parse(localStorage.getItem('auctus_auth'));
         const clientId = authData?.clientId;
-        
-        console.log('[renderMessages] Client ID:', clientId);
+
+        this.logDebug('[renderMessages] Client ID:', clientId);
         
         if (!clientId) {
             container.innerHTML = '<div class="error-message">Error: Client ID not found. Please log in again.</div>';
@@ -407,24 +550,31 @@ class ClientPortalManager {
         }
 
         try {
-            console.log('[renderMessages] Fetching messages for client:', clientId);
-            const messages = await this.authenticatedFetch(`/.netlify/functions/client-messages?client_id=${clientId}`);
-            console.log('[renderMessages] Received messages:', messages);
-            const safeMessages = Array.isArray(messages) ? messages : [];
-            console.log('[renderMessages] Safe messages count:', safeMessages.length);
+            const fetchMessages = async () => {
+                this.logDebug('[renderMessages] Fetching messages for client:', clientId);
+                const response = await this.authenticatedFetch(`/.netlify/functions/client-messages?client_id=${clientId}`).catch(() => []);
+                const payload = Array.isArray(response) ? response : [];
+                this.logDebug('[renderMessages] Safe messages count:', payload.length);
+                return payload;
+            };
+
+            const initialMessages = await fetchMessages();
+            const sortMessages = (list) => [...list].sort((a, b) => new Date(a.created_at) - new Date(b.created_at));
+            const computeSignature = (list) => list.map(msg => `${msg.id ?? ''}|${msg.created_at}|${msg.created_by}|${msg.message || msg.subject || ''}`).join('::');
+            let currentMessages = sortMessages(initialMessages);
+            let currentSignature = computeSignature(currentMessages);
 
             // Clear container and set it to not scroll
             container.innerHTML = '';
-            container.style.overflow = 'hidden';
-            container.style.padding = '0';
+            this.applyMessagesLayout(container);
 
             // Create messages view container that fits the screen
             const messagesView = document.createElement('div');
-            messagesView.style.cssText = 'display: flex; flex-direction: column; height: calc(100vh - 160px); overflow: hidden;';
+            messagesView.style.cssText = 'display: flex; flex-direction: column; flex: 1; min-height: 0; overflow: hidden; border-radius: 18px; background: var(--bg-primary); box-shadow: 0 4px 24px rgba(0, 0, 0, 0.04);';
 
             // Header
             const header = document.createElement('div');
-            header.style.cssText = 'padding: 1.5rem; border-bottom: 1px solid var(--border-color); flex-shrink: 0; background: var(--bg-secondary);';
+            header.style.cssText = 'padding: 1rem 1.5rem; border-bottom: 1px solid var(--border-color); flex-shrink: 0; background: var(--bg-secondary);';
             header.innerHTML = `
                 <h3 style="margin: 0; font-size: 1.3rem; color: var(--text-primary);">Messages</h3>
                 <div style="font-size: 0.85rem; color: var(--text-secondary); margin-top: 0.25rem;">Chat with the Auctus team</div>
@@ -434,103 +584,112 @@ class ClientPortalManager {
             // Messages feed
             const messagesFeed = document.createElement('div');
             messagesFeed.id = 'client-messages-feed';
-            messagesFeed.style.cssText = 'flex: 1; overflow-y: auto; overflow-x: hidden; padding: 1.5rem; background: var(--bg-primary); display: flex; flex-direction: column;';
+            messagesFeed.style.cssText = 'flex: 1; overflow-y: auto; overflow-x: hidden; padding: 1rem 1.5rem; background: var(--bg-primary); display: flex; flex-direction: column; gap: 0.25rem; min-height: 0;';
 
-            if (safeMessages.length === 0) {
-                const emptyMsg = document.createElement('div');
-                emptyMsg.style.cssText = 'text-align: center; padding: 3rem 2rem; color: var(--text-secondary);';
-                emptyMsg.innerHTML = '<i class="fas fa-comments" style="font-size: 3rem; opacity: 0.3; margin-bottom: 1rem; display: block;"></i><p style="margin: 0;">No messages yet. Start the conversation below!</p>';
-                messagesFeed.appendChild(emptyMsg);
-            } else {
-                // Sort messages by date
-                const sortedMessages = [...safeMessages].sort((a, b) => new Date(a.created_at) - new Date(b.created_at));
+            const renderMessagesFeed = (messagesList, { autoScroll = true } = {}) => {
+                const previousScrollOffset = messagesFeed.scrollHeight - messagesFeed.scrollTop;
+                messagesFeed.innerHTML = '';
 
-                sortedMessages.forEach((msg, index) => {
-                    const isClient = msg.created_by !== 'admin';
-                    const showTimestamp = index === 0 || 
-                        (new Date(msg.created_at).getTime() - new Date(sortedMessages[index - 1].created_at).getTime() > 3600000);
+                if (messagesList.length === 0) {
+                    const emptyMsg = document.createElement('div');
+                    emptyMsg.style.cssText = 'text-align: center; padding: 3rem 2rem; color: var(--text-secondary);';
+                    emptyMsg.innerHTML = '<i class="fas fa-comments" style="font-size: 3rem; opacity: 0.3; margin-bottom: 1rem; display: block;"></i><p style="margin: 0;">No messages yet. Start the conversation below!</p>';
+                    messagesFeed.appendChild(emptyMsg);
+                } else {
+                    const sorted = sortMessages(messagesList);
+                    sorted.forEach((msg, index) => {
+                        const authorType = this.determineMessageAuthor(msg, authData);
+                        const isClient = authorType === 'client';
+                        const previous = sorted[index - 1];
+                        const showTimestamp = !previous || (new Date(msg.created_at).getTime() - new Date(previous.created_at).getTime() > 3600000);
 
-                    // Timestamp divider
-                    if (showTimestamp) {
-                        const timestampDiv = document.createElement('div');
-                        timestampDiv.style.cssText = 'text-align: center; margin: 1rem 0 0.5rem; color: var(--text-secondary); font-size: 0.75rem;';
-                        const date = new Date(msg.created_at);
-                        const today = new Date();
-                        const yesterday = new Date(today);
-                        yesterday.setDate(yesterday.getDate() - 1);
+                        if (showTimestamp) {
+                            const timestampDiv = document.createElement('div');
+                            timestampDiv.style.cssText = 'text-align: center; margin: 1rem 0 0.5rem; color: var(--text-secondary); font-size: 0.75rem;';
+                            const date = new Date(msg.created_at);
+                            const today = new Date();
+                            const yesterday = new Date(today);
+                            yesterday.setDate(yesterday.getDate() - 1);
 
-                        let dateLabel;
-                        if (date.toDateString() === today.toDateString()) {
-                            dateLabel = 'Today';
-                        } else if (date.toDateString() === yesterday.toDateString()) {
-                            dateLabel = 'Yesterday';
-                        } else {
-                            dateLabel = date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+                            let dateLabel;
+                            if (date.toDateString() === today.toDateString()) {
+                                dateLabel = 'Today';
+                            } else if (date.toDateString() === yesterday.toDateString()) {
+                                dateLabel = 'Yesterday';
+                            } else {
+                                dateLabel = date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+                            }
+                            timestampDiv.textContent = dateLabel;
+                            messagesFeed.appendChild(timestampDiv);
                         }
-                        timestampDiv.textContent = dateLabel;
-                        messagesFeed.appendChild(timestampDiv);
+
+                        const msgRow = document.createElement('div');
+                        msgRow.style.cssText = `display: flex; align-items: flex-end; gap: 0.5rem; margin-bottom: 0.25rem; ${isClient ? 'flex-direction: row-reverse;' : 'flex-direction: row;'}`;
+
+                        const bubble = document.createElement('div');
+                        bubble.style.cssText = `
+                            max-width: 65%;
+                            padding: 0.65rem 1rem;
+                            border-radius: 18px;
+                            background: ${isClient ? '#007AFF' : '#E5E5EA'};
+                            color: ${isClient ? 'white' : '#000000'};
+                            box-shadow: 0 1px 2px rgba(0,0,0,0.1);
+                            word-wrap: break-word;
+                            position: relative;
+                        `;
+
+                        const tail = document.createElement('div');
+                        tail.style.cssText = `
+                            position: absolute;
+                            bottom: 0;
+                            width: 0;
+                            height: 0;
+                            border-style: solid;
+                            ${isClient ? 
+                                'right: -6px; border-width: 0 0 10px 8px; border-color: transparent transparent transparent #007AFF;' : 
+                                'left: -6px; border-width: 0 8px 10px 0; border-color: transparent #E5E5EA transparent transparent;'}
+                        `;
+                        bubble.appendChild(tail);
+
+                        const content = document.createElement('div');
+                        content.style.cssText = 'line-height: 1.4; font-size: 0.95rem;';
+                        content.textContent = msg.message || msg.content;
+                        bubble.appendChild(content);
+
+                        msgRow.appendChild(bubble);
+
+                        const time = document.createElement('div');
+                        time.style.cssText = 'font-size: 0.7rem; color: var(--text-secondary); padding-bottom: 0.25rem; white-space: nowrap;';
+                        const msgDate = new Date(msg.created_at);
+                        time.textContent = msgDate.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
+                        msgRow.appendChild(time);
+
+                        messagesFeed.appendChild(msgRow);
+                    });
+                }
+
+                requestAnimationFrame(() => {
+                    if (autoScroll) {
+                        messagesFeed.scrollTop = messagesFeed.scrollHeight;
+                    } else {
+                        const target = Math.max(messagesFeed.scrollHeight - previousScrollOffset, 0);
+                        messagesFeed.scrollTop = target;
                     }
-
-                    // Message row
-                    const msgRow = document.createElement('div');
-                    msgRow.style.cssText = `display: flex; align-items: flex-end; gap: 0.5rem; margin-bottom: 0.25rem; ${isClient ? 'flex-direction: row-reverse;' : 'flex-direction: row;'}`;
-
-                    // Message bubble
-                    const bubble = document.createElement('div');
-                    bubble.style.cssText = `
-                        max-width: 65%;
-                        padding: 0.65rem 1rem;
-                        border-radius: 18px;
-                        background: ${isClient ? '#007AFF' : '#E5E5EA'};
-                        color: ${isClient ? 'white' : '#000000'};
-                        box-shadow: 0 1px 2px rgba(0,0,0,0.1);
-                        word-wrap: break-word;
-                        position: relative;
-                    `;
-
-                    // Tail
-                    const tail = document.createElement('div');
-                    tail.style.cssText = `
-                        position: absolute;
-                        bottom: 0;
-                        width: 0;
-                        height: 0;
-                        border-style: solid;
-                        ${isClient ? 
-                            'right: -6px; border-width: 0 0 10px 8px; border-color: transparent transparent transparent #007AFF;' : 
-                            'left: -6px; border-width: 0 8px 10px 0; border-color: transparent #E5E5EA transparent transparent;'}
-                    `;
-                    bubble.appendChild(tail);
-
-                    // Message content
-                    const content = document.createElement('div');
-                    content.style.cssText = 'line-height: 1.4; font-size: 0.95rem;';
-                    content.textContent = msg.message || msg.content;
-                    bubble.appendChild(content);
-
-                    msgRow.appendChild(bubble);
-
-                    // Time
-                    const time = document.createElement('div');
-                    time.style.cssText = 'font-size: 0.7rem; color: var(--text-secondary); padding-bottom: 0.25rem; white-space: nowrap;';
-                    const msgDate = new Date(msg.created_at);
-                    time.textContent = msgDate.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
-                    msgRow.appendChild(time);
-
-                    messagesFeed.appendChild(msgRow);
                 });
+            };
 
-                // Scroll to bottom
-                setTimeout(() => {
-                    messagesFeed.scrollTop = messagesFeed.scrollHeight;
-                }, 50);
-            }
+            const isNearBottom = () => {
+                const distance = messagesFeed.scrollHeight - messagesFeed.clientHeight - messagesFeed.scrollTop;
+                return distance < 80;
+            };
+
+            renderMessagesFeed(currentMessages, { autoScroll: true });
 
             messagesView.appendChild(messagesFeed);
 
             // Compose form
             const composeSection = document.createElement('div');
-            composeSection.style.cssText = 'flex-shrink: 0; border-top: 1px solid var(--border-color); padding: 1rem 1.5rem; background: var(--bg-secondary);';
+            composeSection.style.cssText = 'flex-shrink: 0; border-top: 1px solid var(--border-color); padding: 0.75rem 1.5rem 1rem; background: var(--bg-secondary);';
 
             const composeForm = document.createElement('form');
             composeForm.id = 'client-message-form';
@@ -580,57 +739,45 @@ class ClientPortalManager {
             // Add to container
             container.appendChild(messagesView);
 
+            const adjustLayout = () => this.adjustMessagesViewport(messagesView);
+            adjustLayout();
+            requestAnimationFrame(adjustLayout);
+            this.activeResizeHandler = adjustLayout;
+            window.addEventListener('resize', adjustLayout, { passive: true });
+
+            const reloadMessages = async ({ forceScroll = false } = {}) => {
+                try {
+                    const latest = await fetchMessages();
+                    const sortedLatest = sortMessages(latest);
+                    const nextSignature = computeSignature(sortedLatest);
+                    if (!forceScroll && nextSignature === currentSignature) {
+                        return;
+                    }
+                    currentMessages = sortedLatest;
+                    currentSignature = nextSignature;
+                    const autoScroll = forceScroll || isNearBottom();
+                    renderMessagesFeed(currentMessages, { autoScroll });
+                } catch (error) {
+                    this.logDebug('[renderMessages] reload error:', error);
+                }
+            };
+
             // Setup message form submit
             composeForm.addEventListener('submit', async (e) => {
                 e.preventDefault();
                 
                 const messageContent = messageInput.value.trim();
                 if (!messageContent) return;
-                
-                // Immediately add the message to the UI (optimistic update)
-                const newMsgRow = document.createElement('div');
-                newMsgRow.style.cssText = 'display: flex; align-items: flex-end; gap: 0.5rem; margin-bottom: 0.25rem; flex-direction: row-reverse;';
-                
-                const newBubble = document.createElement('div');
-                newBubble.style.cssText = `
-                    max-width: 65%;
-                    padding: 0.65rem 1rem;
-                    border-radius: 18px;
-                    background: #007AFF;
-                    color: white;
-                    box-shadow: 0 1px 2px rgba(0,0,0,0.1);
-                    word-wrap: break-word;
-                    position: relative;
-                `;
-                
-                const newTail = document.createElement('div');
-                newTail.style.cssText = 'position: absolute; bottom: 0; right: -6px; width: 0; height: 0; border-style: solid; border-width: 0 0 10px 8px; border-color: transparent transparent transparent #007AFF;';
-                newBubble.appendChild(newTail);
-                
-                const newContent = document.createElement('div');
-                newContent.style.cssText = 'line-height: 1.4; font-size: 0.95rem;';
-                newContent.textContent = messageContent;
-                newBubble.appendChild(newContent);
-                
-                newMsgRow.appendChild(newBubble);
-                
-                const newTime = document.createElement('div');
-                newTime.style.cssText = 'font-size: 0.7rem; color: var(--text-secondary); padding-bottom: 0.25rem; white-space: nowrap;';
-                newTime.textContent = new Date().toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
-                newMsgRow.appendChild(newTime);
-                
-                messagesFeed.appendChild(newMsgRow);
-                
                 // Clear and reset input
                 messageInput.value = '';
                 messageInput.style.height = 'auto';
-                
-                // Scroll to bottom
-                messagesFeed.scrollTop = messagesFeed.scrollHeight;
-                
+
                 // Send to server
-                await this.sendMessage(clientId);
+                await this.sendMessage(clientId, messageContent);
+                await reloadMessages({ forceScroll: true });
             });
+
+            this.startMessagesPolling(() => reloadMessages({ forceScroll: false }));
         } catch (error) {
             console.error('[renderMessages] Error:', error);
             container.innerHTML = `
@@ -764,19 +911,19 @@ class ClientPortalManager {
                         <div class="profile-info">
                             <div class="info-row">
                                 <span class="info-label">Name:</span>
-                                <span class="info-value">${this.clientData?.name || 'N/A'}</span>
+                                <span class="info-value">${this.escapeHTML(this.clientData?.name || 'N/A')}</span>
                             </div>
                             <div class="info-row">
                                 <span class="info-label">Company:</span>
-                                <span class="info-value">${this.clientData?.company || 'N/A'}</span>
+                                <span class="info-value">${this.escapeHTML(this.clientData?.company || 'N/A')}</span>
                             </div>
                             <div class="info-row">
                                 <span class="info-label">Email:</span>
-                                <span class="info-value">${this.clientData?.email || 'N/A'}</span>
+                                <span class="info-value">${this.escapeHTML(this.clientData?.email || 'N/A')}</span>
                             </div>
                             <div class="info-row">
                                 <span class="info-label">Phone:</span>
-                                <span class="info-value">${this.clientData?.phone || 'N/A'}</span>
+                                <span class="info-value">${this.escapeHTML(this.clientData?.phone || 'N/A')}</span>
                             </div>
                         </div>
                     </div>
@@ -787,11 +934,11 @@ class ClientPortalManager {
                         <div class="profile-info">
                             <div class="info-row">
                                 <span class="info-label">Username:</span>
-                                <span class="info-value">${authData.username}</span>
+                                <span class="info-value">${this.escapeHTML(authData.username)}</span>
                             </div>
                             <div class="info-row">
                                 <span class="info-label">Last Login:</span>
-                                <span class="info-value">${authData.lastLogin ? new Date(authData.lastLogin).toLocaleString() : 'N/A'}</span>
+                                <span class="info-value">${this.escapeHTML(authData.lastLogin ? new Date(authData.lastLogin).toLocaleString() : 'N/A')}</span>
                             </div>
                         </div>
                         <button class="btn-secondary" onclick="window.clientPortal.changePassword()">
@@ -818,18 +965,26 @@ class ClientPortalManager {
     }
 
     renderProjectCard(project) {
+        const name = this.escapeHTML(project?.name || 'Project');
+        const statusLabel = project?.status || 'Status';
+        const statusClass = (statusLabel.toLowerCase().replace(/[^a-z0-9-]+/g, '-') || 'unknown');
+        const statusText = this.escapeHTML(statusLabel);
+        const description = project?.description ? this.escapeHTML(project.description.substring(0, 100)) : '';
+        const startDate = this.escapeHTML(new Date(project.start_date).toLocaleDateString());
+        const endDate = project.end_date ? this.escapeHTML(new Date(project.end_date).toLocaleDateString()) : '';
+
         return `
             <div class="project-card">
                 <div class="project-card-header">
-                    <h3>${project.name}</h3>
-                    <span class="status-badge status-${project.status.toLowerCase().replace(' ', '-')}">
-                        ${project.status}
+                    <h3>${name}</h3>
+                    <span class="status-badge status-${statusClass}">
+                        ${statusText}
                     </span>
                 </div>
-                ${project.description ? `<p class="project-description">${project.description.substring(0, 100)}${project.description.length > 100 ? '...' : ''}</p>` : ''}
+                ${project.description ? `<p class="project-description">${description}${project.description.length > 100 ? '...' : ''}</p>` : ''}
                 <div class="project-card-footer">
-                    <span><i class="fas fa-calendar"></i> ${new Date(project.start_date).toLocaleDateString()}</span>
-                    ${project.end_date ? `<span><i class="fas fa-flag-checkered"></i> ${new Date(project.end_date).toLocaleDateString()}</span>` : ''}
+                    <span><i class="fas fa-calendar"></i> ${startDate}</span>
+                    ${project.end_date ? `<span><i class="fas fa-flag-checkered"></i> ${endDate}</span>` : ''}
                 </div>
             </div>
         `;
@@ -837,18 +992,25 @@ class ClientPortalManager {
 
     renderDetailedProjectCard(project) {
         const progress = this.calculateProjectProgress(project);
+        const name = this.escapeHTML(project?.name || 'Project');
+        const statusLabel = project?.status || 'Status';
+        const statusClass = (statusLabel.toLowerCase().replace(/[^a-z0-9-]+/g, '-') || 'unknown');
+        const statusText = this.escapeHTML(statusLabel);
+        const description = project?.description ? this.escapeHTML(project.description) : '';
+        const startDate = this.escapeHTML(new Date(project.start_date).toLocaleDateString());
+        const endDate = project.end_date ? this.escapeHTML(new Date(project.end_date).toLocaleDateString()) : '';
         
         return `
             <div class="detailed-project-card">
                 <div class="project-card-header">
-                    <h3>${project.name}</h3>
-                    <span class="status-badge status-${project.status.toLowerCase().replace(' ', '-')}">
-                        ${project.status}
+                    <h3>${name}</h3>
+                    <span class="status-badge status-${statusClass}">
+                        ${statusText}
                     </span>
                 </div>
                 
                 ${project.description ? `
-                    <p class="project-description">${project.description}</p>
+                    <p class="project-description">${description}</p>
                 ` : ''}
 
                 <div class="project-progress">
@@ -866,7 +1028,7 @@ class ClientPortalManager {
                         <i class="fas fa-calendar-alt"></i>
                         <div>
                             <small>Start Date</small>
-                            <strong>${new Date(project.start_date).toLocaleDateString()}</strong>
+                            <strong>${startDate}</strong>
                         </div>
                     </div>
                     ${project.end_date ? `
@@ -874,7 +1036,7 @@ class ClientPortalManager {
                             <i class="fas fa-flag-checkered"></i>
                             <div>
                                 <small>Target Date</small>
-                                <strong>${new Date(project.end_date).toLocaleDateString()}</strong>
+                                <strong>${endDate}</strong>
                             </div>
                         </div>
                     ` : ''}
@@ -884,17 +1046,61 @@ class ClientPortalManager {
     }
 
     renderUpdateItem(update) {
+        const title = this.escapeHTML(update?.title || 'Update');
+        const content = update?.content || '';
+        const summary = this.escapeHTML(content.substring(0, 120));
+        const createdBy = this.escapeHTML(update?.created_by || 'Auctus');
+        const createdAt = this.escapeHTML(new Date(update.created_at).toLocaleDateString());
+
         return `
             <div class="update-item-compact">
                 <div class="update-icon">
                     <i class="fas fa-bullhorn"></i>
                 </div>
                 <div class="update-content">
-                    <h4>${update.title}</h4>
-                    <p>${update.content.substring(0, 120)}${update.content.length > 120 ? '...' : ''}</p>
+                    <h4>${title}</h4>
+                    <p>${summary}${content.length > 120 ? '...' : ''}</p>
                     <div class="update-meta">
-                        <span><i class="fas fa-user"></i> ${update.created_by}</span>
-                        <span><i class="fas fa-clock"></i> ${new Date(update.created_at).toLocaleDateString()}</span>
+                        <span><i class="fas fa-user"></i> ${createdBy}</span>
+                        <span><i class="fas fa-clock"></i> ${createdAt}</span>
+                    </div>
+                </div>
+            </div>
+        `;
+    }
+
+    renderTimelineItem(update) {
+        const title = this.escapeHTML(update?.title || 'Update');
+        const createdAt = this.escapeHTML(new Date(update.created_at).toLocaleDateString('en-US', {
+            year: 'numeric',
+            month: 'long',
+            day: 'numeric'
+        }));
+        const content = this.escapeHTML(update?.content || '').replace(/\n/g, '<br>');
+        const author = this.escapeHTML(update?.created_by || 'Auctus');
+
+        return `
+            <div class="timeline-item">
+                <div class="timeline-marker">
+                    <i class="fas fa-circle"></i>
+                </div>
+                <div class="timeline-content">
+                    <div class="update-card">
+                        <div class="update-header">
+                            <h3>${title}</h3>
+                            <span class="update-date">
+                                <i class="fas fa-calendar"></i>
+                                ${createdAt}
+                            </span>
+                        </div>
+                        <div class="update-body">
+                            <p>${content}</p>
+                        </div>
+                        <div class="update-footer">
+                            <span class="update-author">
+                                <i class="fas fa-user"></i> ${author}
+                            </span>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -913,10 +1119,8 @@ class ClientPortalManager {
         return statusProgress[project.status] || 0;
     }
 
-    async sendMessage(clientId) {
-        const messageContent = document.getElementById('message-content')?.value || '';
-
-        if (!messageContent.trim()) {
+    async sendMessage(clientId, messageContent, subject = null) {
+        if (!messageContent || !messageContent.trim()) {
             return; // Already validated in form submit
         }
 
@@ -924,19 +1128,19 @@ class ClientPortalManager {
             const authData = JSON.parse(localStorage.getItem('auctus_auth'));
             const payload = {
                 client_id: clientId,
-                subject: null,
+                subject,
                 message: messageContent,
                 created_by: authData?.clientName || this.clientData?.name || 'Client'
             };
             
-            console.log('Sending message with payload:', payload);
+            this.logDebug('Sending message with payload:', payload);
             
             await this.authenticatedFetch('/.netlify/functions/client-messages', {
                 method: 'POST',
                 body: JSON.stringify(payload)
             });
 
-            console.log('Message sent successfully');
+            this.logDebug('Message sent successfully');
             this.showToast('Message sent!', 'success');
         } catch (error) {
             console.error('Error sending message:', error);
@@ -1008,11 +1212,16 @@ class ClientPortalManager {
     showToast(message, type = 'info') {
         const toast = document.createElement('div');
         toast.className = `toast toast-${type}`;
-        toast.innerHTML = `
-            <i class="fas fa-${type === 'success' ? 'check-circle' : type === 'error' ? 'exclamation-circle' : 'info-circle'}"></i>
-            <span>${message}</span>
-        `;
-        
+
+        const icon = document.createElement('i');
+        icon.className = `fas fa-${type === 'success' ? 'check-circle' : type === 'error' ? 'exclamation-circle' : 'info-circle'}`;
+
+        const text = document.createElement('span');
+        text.textContent = message;
+
+        toast.appendChild(icon);
+        toast.appendChild(text);
+
         document.body.appendChild(toast);
         
         setTimeout(() => {
@@ -1031,7 +1240,7 @@ class ClientPortalManager {
             <div class="empty-state">
                 <i class="fas fa-exclamation-triangle"></i>
                 <h3>Error</h3>
-                <p>${message}</p>
+                <p>${this.escapeHTML(message)}</p>
                 <button class="btn-primary" onclick="window.clientPortal.initialize()">
                     <i class="fas fa-redo"></i> Try Again
                 </button>

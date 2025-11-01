@@ -1,5 +1,9 @@
 // View Manager - Renders different views
 class ViewManager {
+    constructor() {
+        this.debug = false;
+    }
+
     getCurrentUser() {
         return localStorage.getItem('auctus_current_user') || null;
     }
@@ -12,6 +16,13 @@ class ViewManager {
         return element;
     }
 
+    logDebug(...args) {
+        if (!this.debug) {
+            return;
+        }
+        console.log(...args);
+    }
+
     // SECURITY: Helper to safely render a list by building DOM instead of using innerHTML
     renderListContainer(items, renderCardFunction) {
         const container = this.createElement('div', 'list-container');
@@ -22,11 +33,10 @@ class ViewManager {
         return container;
     }
 
-    async renderClientsView() {
-        console.log('Rendering clients view...');
+    async renderClientsView(options = {}) {
+        const { focusSection = null } = options;
         let clients = await window.storageManager.getClients();
         let websites = await window.storageManager.getWebsites();
-        console.log('Clients fetched:', clients, 'Type:', typeof clients, 'Is Array:', Array.isArray(clients));
         
         // Safety check: ensure clients and websites are always arrays
         if (!Array.isArray(clients)) {
@@ -53,12 +63,356 @@ class ViewManager {
         
         if (clients.length === 0) {
             container.appendChild(this.renderEmptyState('users', 'No clients yet', 'Add your first client to get started'));
-        } else {
-            const listContainer = this.createElement('div', 'list-container');
-            clients.forEach(client => {
-                listContainer.appendChild(this.renderClientCardElement(client, websites));
+            return;
+        }
+
+        const fetchPortalCollection = async (endpoint) => {
+            try {
+                const response = await fetch(endpoint);
+                if (!response.ok) {
+                    return [];
+                }
+                const payload = await response.json();
+                return Array.isArray(payload) ? payload : [];
+            } catch (error) {
+                console.error('Failed to load portal data from', endpoint, error);
+                return [];
+            }
+        };
+
+        const [portalUsers, portalMessages] = await Promise.all([
+            fetchPortalCollection('/.netlify/functions/client-portal-users'),
+            fetchPortalCollection('/.netlify/functions/client-messages')
+        ]);
+
+        const activePortalMessages = portalMessages.filter(msg => !msg.is_archived);
+        const unreadPortalMessages = activePortalMessages.filter(msg => !msg.is_read);
+        const clientsWithAccess = new Set(portalUsers.map(user => user.client_id));
+        const clientsWithoutAccounts = clients.filter(client => !clientsWithAccess.has(client.id));
+
+        const clientLookup = new Map();
+        clients.forEach(client => {
+            clientLookup.set(String(client.id), client);
+        });
+
+        const normalizeType = value => (value || '').toLowerCase();
+        const securedClients = clients.filter(client => normalizeType(client.type) === 'current');
+        const attentionClients = clients.filter(client => normalizeType(client.type) !== 'current');
+
+        const clientsSummaryRow = this.createElement('div', 'clients-summary');
+        const summaryCards = [
+            { key: 'total', label: 'Total Clients', value: clients.length, icon: 'users', tone: 'primary' },
+            { key: 'secured', label: 'Secured', value: securedClients.length, icon: 'user-shield', tone: 'success' },
+            { key: 'attention', label: 'Needs Attention', value: attentionClients.length, icon: 'exclamation-triangle', tone: 'warning' },
+            { key: 'portal', label: 'Portal Accounts', value: portalUsers.length, icon: 'user-lock', tone: 'accent' }
+        ];
+
+        const buildSummaryCard = ({ label, value, icon, tone }) => {
+            const card = this.createElement('div', 'clients-summary-card');
+            card.classList.add(`tone-${tone}`);
+
+            const iconWrap = this.createElement('div', 'summary-icon');
+            iconWrap.innerHTML = `<i class="fas fa-${icon}"></i>`;
+            card.appendChild(iconWrap);
+
+            card.appendChild(this.createElement('div', 'summary-value', String(value)));
+            card.appendChild(this.createElement('div', 'summary-label', label));
+
+            return card;
+        };
+
+        summaryCards
+            .filter(card => !(card.key === 'portal' && portalUsers.length === 0 && clientsWithoutAccounts.length === 0))
+            .forEach(card => clientsSummaryRow.appendChild(buildSummaryCard(card)));
+
+        container.appendChild(clientsSummaryRow);
+
+        const buildClientSection = (title, clientList, emptyMessage) => {
+            const section = this.createElement('div', 'list-section');
+            section.classList.add('clients-column', 'collapsible-section');
+
+            const sectionId = title.toLowerCase().replace(/[^a-z0-9]+/g, '-');
+            const headerButton = this.createElement('button', 'collapsible-header');
+            headerButton.type = 'button';
+            headerButton.setAttribute('aria-expanded', 'true');
+            headerButton.setAttribute('aria-controls', `clients-${sectionId}-content`);
+
+            const headerTitle = this.createElement('span', 'collapsible-title', `${title} (${clientList.length})`);
+            headerButton.appendChild(headerTitle);
+
+            const chevron = document.createElement('i');
+            chevron.className = 'fas fa-chevron-right';
+            headerButton.appendChild(chevron);
+
+            section.appendChild(headerButton);
+
+            const contentWrapper = this.createElement('div', 'collapsible-content');
+            contentWrapper.id = `clients-${sectionId}-content`;
+
+            if (clientList.length === 0) {
+                const emptyState = this.renderEmptyState('users', emptyMessage, '');
+                emptyState.classList.add('empty-state-compact');
+                contentWrapper.appendChild(emptyState);
+            } else {
+                const listContainer = this.createElement('div', 'list-container');
+                clientList.forEach(client => {
+                    listContainer.appendChild(this.renderClientCardElement(client, websites));
+                });
+                contentWrapper.appendChild(listContainer);
+            }
+
+            section.appendChild(contentWrapper);
+
+            headerButton.addEventListener('click', () => {
+                const isExpanded = headerButton.getAttribute('aria-expanded') === 'true';
+                headerButton.setAttribute('aria-expanded', String(!isExpanded));
+                section.classList.toggle('collapsed', isExpanded);
             });
-            container.appendChild(listContainer);
+
+            return section;
+        };
+
+        const columnsWrapper = this.createElement('div', 'clients-columns');
+        columnsWrapper.appendChild(buildClientSection('Secured Clients', securedClients, 'No secured clients yet'));
+        columnsWrapper.appendChild(buildClientSection('Needs Attention', attentionClients, 'No clients currently need attention'));
+        container.appendChild(columnsWrapper);
+
+        const createSummaryStat = (label, value) => {
+            const statItem = this.createElement('div', 'messages-summary-item');
+            statItem.appendChild(this.createElement('span', 'summary-label', label));
+            statItem.appendChild(this.createElement('span', 'summary-value', String(value)));
+            return statItem;
+        };
+
+        const buildMetaSpan = (icon, text) => {
+            const span = document.createElement('span');
+            span.className = 'portal-meta-item';
+            const iconElement = document.createElement('i');
+            iconElement.className = `fas fa-${icon}`;
+            span.appendChild(iconElement);
+            span.appendChild(document.createTextNode(` ${text}`));
+            return span;
+        };
+
+        const portalSection = this.createElement('div', 'list-section portal-section');
+        portalSection.id = 'portal-accounts-section';
+
+        const portalHeader = this.createElement('div', 'view-header');
+        const portalTitle = this.createElement('h2', '', 'Portal Accounts & Messaging');
+        portalHeader.appendChild(portalTitle);
+        portalSection.appendChild(portalHeader);
+
+        const helperText = this.createElement('p', 'portal-helper-text', 'Keep every client aligned by managing portal access, updates, and conversations in one place.');
+        portalSection.appendChild(helperText);
+
+        const portalSummaryRow = this.createElement('div', 'messages-summary portal-summary');
+        portalSummaryRow.appendChild(createSummaryStat('Portal Accounts', portalUsers.length));
+        portalSummaryRow.appendChild(createSummaryStat('Clients Without Access', clientsWithoutAccounts.length));
+        portalSummaryRow.appendChild(createSummaryStat('Unread Messages', unreadPortalMessages.length));
+        portalSummaryRow.appendChild(createSummaryStat('Total Clients', clients.length));
+        portalSection.appendChild(portalSummaryRow);
+
+        const portalGrid = this.createElement('div', 'settings-grid portal-grid');
+
+        // Portal Accounts card
+        const accountsCard = this.createElement('div', 'settings-card');
+        const accountsHeader = this.createElement('div', 'settings-card-header');
+        const accountsIcon = document.createElement('i');
+        accountsIcon.className = 'fas fa-user-shield';
+        accountsHeader.appendChild(accountsIcon);
+        accountsHeader.appendChild(this.createElement('h3', '', 'Portal Accounts'));
+        accountsCard.appendChild(accountsHeader);
+
+        const accountsBody = this.createElement('div', 'settings-card-body');
+        accountsBody.appendChild(this.createElement('p', 'settings-description', 'Each account gives clients real-time access to their updates, projects, and messages.'));
+
+        if (portalUsers.length > 0) {
+            const accountsList = this.createElement('div', 'data-list');
+            portalUsers.forEach(user => {
+                const item = this.createElement('div', 'data-item');
+
+                const content = this.createElement('div', 'data-content');
+                const name = this.createElement('h4', '', user.client_name || 'Unknown Client');
+                content.appendChild(name);
+
+                const meta = this.createElement('div', 'data-meta');
+                meta.appendChild(buildMetaSpan('user', user.username));
+                if (user.company) {
+                    meta.appendChild(buildMetaSpan('building', user.company));
+                }
+                if (user.email) {
+                    meta.appendChild(buildMetaSpan('envelope', user.email));
+                }
+                const lastLoginText = user.last_login
+                    ? `Last login: ${new Date(user.last_login).toLocaleString()}`
+                    : 'Never logged in';
+                meta.appendChild(buildMetaSpan('clock', lastLoginText));
+                content.appendChild(meta);
+                item.appendChild(content);
+
+                const actions = this.createElement('div', 'data-actions');
+                const addAction = (icon, title, handler) => {
+                    const button = this.createElement('button', 'icon-btn');
+                    button.type = 'button';
+                    button.innerHTML = `<i class="fas fa-${icon}"></i>`;
+                    button.title = title;
+                    button.addEventListener('click', handler);
+                    return button;
+                };
+
+                actions.appendChild(addAction('edit', 'Edit account', () => window.clientAccountManager.editAccount(user.id)));
+                actions.appendChild(addAction('trash', 'Delete account', () => window.clientAccountManager.deleteAccount(user.id)));
+
+                item.appendChild(actions);
+                accountsList.appendChild(item);
+            });
+            accountsBody.appendChild(accountsList);
+        } else {
+            const emptyState = this.renderEmptyState('user-lock', 'No portal accounts yet', 'Create an account so your client can access their dashboard.');
+            emptyState.classList.add('empty-state-compact');
+            accountsBody.appendChild(emptyState);
+        }
+
+        portalGrid.appendChild(accountsCard);
+        accountsCard.appendChild(accountsBody);
+
+        if (clientsWithoutAccounts.length > 0) {
+            const reminderCard = this.createElement('div', 'settings-card portal-missing-card');
+            const reminderHeader = this.createElement('div', 'settings-card-header');
+            const reminderIcon = document.createElement('i');
+            reminderIcon.className = 'fas fa-user-plus';
+            reminderHeader.appendChild(reminderIcon);
+            reminderHeader.appendChild(this.createElement('h3', '', 'Ready for Portal Access'));
+            reminderCard.appendChild(reminderHeader);
+
+            const reminderBody = this.createElement('div', 'settings-card-body');
+            reminderBody.appendChild(this.createElement('p', 'settings-description', 'Invite these clients to the portal so they can follow progress and updates in real time.'));
+
+            const missingList = document.createElement('ul');
+            missingList.className = 'portal-missing-list';
+            const maxPreview = 6;
+            clientsWithoutAccounts.slice(0, maxPreview).forEach(client => {
+                const item = document.createElement('li');
+                const businessName = client.company || client.name || 'Client';
+                const contactLine = client.name && client.name !== businessName
+                    ? ` — ${client.name}`
+                    : '';
+                item.textContent = `${businessName}${contactLine}`;
+                missingList.appendChild(item);
+            });
+            reminderBody.appendChild(missingList);
+
+            if (clientsWithoutAccounts.length > maxPreview) {
+                reminderBody.appendChild(this.createElement('span', 'portal-missing-more', `+${clientsWithoutAccounts.length - maxPreview} more pending invites`));
+            }
+
+            const inviteBtn = this.createElement('button', 'btn-primary portal-inline-btn');
+            inviteBtn.type = 'button';
+            inviteBtn.innerHTML = '<i class="fas fa-user-plus"></i> Create Portal Account';
+            inviteBtn.addEventListener('click', () => window.clientAccountManager.openCreateAccountModal());
+            reminderBody.appendChild(inviteBtn);
+
+            reminderCard.appendChild(reminderBody);
+            portalGrid.appendChild(reminderCard);
+        }
+
+        // Messages card
+        const messagesCard = this.createElement('div', 'settings-card');
+        const messagesHeader = this.createElement('div', 'settings-card-header');
+        const messagesIcon = document.createElement('i');
+        messagesIcon.className = 'fas fa-comments';
+        messagesHeader.appendChild(messagesIcon);
+    messagesHeader.appendChild(this.createElement('h3', '', 'Recent Messages'));
+        messagesCard.appendChild(messagesHeader);
+
+        const messagesBody = this.createElement('div', 'settings-card-body');
+
+        if (activePortalMessages.length > 0) {
+            const threadsMap = new Map();
+            activePortalMessages.forEach(message => {
+                const clientId = message.client_id || message.clientId;
+                if (!clientId) return;
+                const key = String(clientId);
+                if (!threadsMap.has(key)) {
+                    threadsMap.set(key, []);
+                }
+                threadsMap.get(key).push(message);
+            });
+
+            const messageThreads = Array.from(threadsMap.entries()).map(([clientId, messages]) => {
+                const sortedMessages = messages.slice().sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+                const latestMessage = sortedMessages[0];
+                const client = clientLookup.get(clientId);
+                const businessName = (client?.company || latestMessage.client_company || latestMessage.client_name || 'Client Portal').trim();
+                const contactName = (client?.name || latestMessage.client_name || '').trim();
+                return {
+                    clientId,
+                    businessName,
+                    contactName,
+                    contactEmail: client?.email || '',
+                    latestMessage,
+                    unreadCount: messages.filter(msg => !msg.is_read).length
+                };
+            }).sort((a, b) => new Date(b.latestMessage.created_at) - new Date(a.latestMessage.created_at));
+
+            const threadList = this.createElement('div', 'message-thread-list');
+
+            messageThreads.forEach(thread => {
+                const itemButton = this.createElement('button', 'message-thread-item');
+                itemButton.type = 'button';
+                if (thread.unreadCount > 0) {
+                    itemButton.classList.add('has-unread');
+                }
+
+                const main = this.createElement('div', 'message-thread-main');
+                main.appendChild(this.createElement('span', 'thread-client-name', thread.businessName));
+                if (thread.contactName && thread.contactName.toLowerCase() !== thread.businessName.toLowerCase()) {
+                    main.appendChild(this.createElement('span', 'thread-company', thread.contactName));
+                }
+
+                const snippetText = thread.latestMessage.message
+                    ? (thread.latestMessage.message.length > 100
+                        ? `${thread.latestMessage.message.substring(0, 100)}…`
+                        : thread.latestMessage.message)
+                    : (thread.latestMessage.subject || 'New message');
+                main.appendChild(this.createElement('span', 'thread-snippet', snippetText));
+
+                const meta = this.createElement('div', 'message-thread-meta');
+                const timestamp = new Date(thread.latestMessage.created_at);
+                const timeLabel = timestamp.toLocaleString([], { dateStyle: 'short', timeStyle: 'short' });
+                meta.appendChild(this.createElement('span', 'thread-time', timeLabel));
+
+                if (thread.unreadCount > 0) {
+                    const badgeValue = thread.unreadCount > 9 ? '9+' : String(thread.unreadCount);
+                    meta.appendChild(this.createElement('span', 'thread-unread-badge', badgeValue));
+                }
+
+                itemButton.appendChild(main);
+                itemButton.appendChild(meta);
+                itemButton.addEventListener('click', () => window.clientAccountManager.openMessageThread(thread.clientId, thread.businessName, thread.contactName));
+                threadList.appendChild(itemButton);
+            });
+
+            messagesBody.appendChild(threadList);
+        } else {
+            const emptyState = this.renderEmptyState('inbox', 'No messages yet', 'Messages sent from the client portal will appear here.');
+            emptyState.classList.add('empty-state-compact');
+            messagesBody.appendChild(emptyState);
+        }
+
+        messagesCard.appendChild(messagesBody);
+        portalGrid.appendChild(messagesCard);
+
+        portalSection.appendChild(portalGrid);
+        container.appendChild(portalSection);
+
+        if (focusSection === 'portal') {
+            setTimeout(() => {
+                const target = document.getElementById('portal-accounts-section');
+                if (target) {
+                    target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                }
+            }, 150);
         }
     }
 
@@ -72,14 +426,26 @@ class ViewManager {
         
         const header = this.createElement('div', 'item-header');
         const titleDiv = this.createElement('div');
-        const itemTitle = this.createElement('div', 'item-title', client.name);
-        const itemSubtitle = this.createElement('div', 'item-subtitle', client.email || 'No email');
+        const businessName = (client.company || client.name || 'New Client').trim();
+        const contactName = (client.name || '').trim();
+        const primaryEmail = (client.email || '').trim();
+        const itemTitle = this.createElement('div', 'item-title', businessName);
+        let subtitleText = 'No primary contact';
+        if (contactName && contactName.toLowerCase() !== businessName.toLowerCase()) {
+            subtitleText = contactName;
+        } else if (primaryEmail) {
+            subtitleText = primaryEmail;
+        }
+        const itemSubtitle = this.createElement('div', 'item-subtitle', subtitleText);
         titleDiv.appendChild(itemTitle);
         titleDiv.appendChild(itemSubtitle);
         header.appendChild(titleDiv);
         
-        const statusClass = client.type === 'current' ? 'status-active' : 'status-potential';
-        const status = this.createElement('span', `item-status ${statusClass}`, client.type);
+        const clientType = (client.type || '').toLowerCase();
+        const isSecured = clientType === 'current';
+        const statusClass = isSecured ? 'status-secured' : 'status-attention';
+        const statusLabel = isSecured ? 'Secured' : 'Needs Attention';
+        const status = this.createElement('span', `item-status ${statusClass}`, statusLabel);
         header.appendChild(status);
         card.appendChild(header);
         
@@ -91,6 +457,14 @@ class ViewManager {
             meta.appendChild(websiteSpan);
         }
         
+        const showEmailInMeta = client.email && subtitleText !== client.email;
+
+        if (showEmailInMeta) {
+            const emailSpan = document.createElement('span');
+            emailSpan.innerHTML = '<i class="fas fa-envelope"></i> ' + client.email;
+            meta.appendChild(emailSpan);
+        }
+
         if (client.phone) {
             const phoneSpan = document.createElement('span');
             phoneSpan.innerHTML = '<i class="fas fa-phone"></i> ' + client.phone;
@@ -308,7 +682,7 @@ class ViewManager {
     }
 
     async renderFinancesView() {
-        console.log('Rendering comprehensive finances view...');
+    this.logDebug('Rendering comprehensive finances view...');
         
         // Fetch all financial data
         let recurringIncome = await window.storageManager.getRecurringIncome();
@@ -347,7 +721,7 @@ class ViewManager {
             : netIncome; // Fallback to net income if no employee allocation exists
         
         // Debug logging
-        console.log('Employee Pool Calculation:', {
+    this.logDebug('Employee Pool Calculation:', {
             allocations,
             employeeAllocation,
             netIncome,
@@ -581,7 +955,7 @@ class ViewManager {
                             <div class="settings-label">Services</div>
                             <div class="settings-value">Website Development & AI Models</div>
                         </div>
-                        <button class="btn-secondary" onclick="alert('Company settings coming soon!')">
+                        <button class="btn-secondary" onclick="window.app && window.app.showNotification('Company settings coming soon!', 'info')">
                             <i class="fas fa-edit"></i> Edit Company Info
                         </button>
                     </div>
@@ -598,10 +972,10 @@ class ViewManager {
                         <button class="btn-secondary" onclick="window.open('/.netlify/functions/db-init', '_blank')">
                             <i class="fas fa-sync"></i> Initialize Database Tables
                         </button>
-                        <button class="btn-secondary" onclick="if(confirm('This will export all your data to a JSON file. Continue?')) alert('Export feature coming soon!')">
+                        <button class="btn-secondary" onclick="if(confirm('This will export all your data to a JSON file. Continue?')) { window.app && window.app.showNotification('Export feature coming soon!', 'info'); }">
                             <i class="fas fa-download"></i> Export All Data
                         </button>
-                        <button class="btn-secondary" onclick="alert('Import feature coming soon!')">
+                        <button class="btn-secondary" onclick="window.app && window.app.showNotification('Import feature coming soon!', 'info')">
                             <i class="fas fa-upload"></i> Import Data
                         </button>
                     </div>
@@ -615,13 +989,13 @@ class ViewManager {
                     </div>
                     <div class="settings-card-body">
                         <p class="settings-description">Generate business reports and insights</p>
-                        <button class="btn-secondary" onclick="alert('Monthly financial report coming soon!')">
+                        <button class="btn-secondary" onclick="window.app && window.app.showNotification('Monthly financial report coming soon!', 'info')">
                             <i class="fas fa-file-invoice-dollar"></i> Monthly Financial Report
                         </button>
-                        <button class="btn-secondary" onclick="alert('Client report coming soon!')">
+                        <button class="btn-secondary" onclick="window.app && window.app.showNotification('Client report coming soon!', 'info')">
                             <i class="fas fa-users"></i> Client Activity Report
                         </button>
-                        <button class="btn-secondary" onclick="alert('Project timeline coming soon!')">
+                        <button class="btn-secondary" onclick="window.app && window.app.showNotification('Project timeline coming soon!', 'info')">
                             <i class="fas fa-project-diagram"></i> Project Timeline Report
                         </button>
                     </div>
@@ -728,7 +1102,7 @@ class ViewManager {
                             <div class="settings-label">Data Sync</div>
                             <div class="settings-value status-active">Active</div>
                         </div>
-                        <button class="btn-secondary" onclick="alert('Manual backup feature coming soon!')">
+                        <button class="btn-secondary" onclick="window.app && window.app.showNotification('Manual backup feature coming soon!', 'info')">
                             <i class="fas fa-cloud-upload-alt"></i> Create Manual Backup
                         </button>
                     </div>
@@ -738,13 +1112,18 @@ class ViewManager {
     }
 
     renderEmptyState(icon, title, description) {
-        return `
-            <div class="empty-state">
-                <i class="fas fa-${icon}"></i>
-                <h3>${title}</h3>
-                <p>${description}</p>
-            </div>
-        `;
+        const wrapper = this.createElement('div', 'empty-state');
+        const iconElement = document.createElement('i');
+        iconElement.className = `fas fa-${icon}`;
+        wrapper.appendChild(iconElement);
+
+        wrapper.appendChild(this.createElement('h3', '', title));
+
+        if (description) {
+            wrapper.appendChild(this.createElement('p', '', description));
+        }
+
+        return wrapper;
     }
 
     async renderNotesView() {
@@ -853,513 +1232,12 @@ class ViewManager {
         `;
     }
 
-    async renderMessagesView() {
-        console.log('Rendering messages view...');
-        
-        try {
-            // Fetch all necessary data
-            const token = localStorage.getItem('auctus_token');
-            const headers = { 'Authorization': `Bearer ${token}` };
-            
-            const [clientsRes, messagesRes] = await Promise.all([
-                fetch('/.netlify/functions/clients', { headers }),
-                fetch('/.netlify/functions/client-messages', { headers })
-            ]);
-            
-            const clients = await clientsRes.json();
-            const allMessages = await messagesRes.json();
-            
-            const container = document.getElementById('messages-view');
-            container.innerHTML = '';
-            
-            // Build header
-            const viewHeader = this.createElement('div', 'view-header');
-            const title = this.createElement('h2', '', 'Client Messages');
-            viewHeader.appendChild(title);
-            container.appendChild(viewHeader);
-            
-            // Group messages by client
-            const messagesByClient = {};
-            if (Array.isArray(allMessages)) {
-                allMessages.forEach(msg => {
-                    if (!messagesByClient[msg.client_id]) {
-                        messagesByClient[msg.client_id] = [];
-                    }
-                    messagesByClient[msg.client_id].push(msg);
-                });
-            }
-            
-            // Calculate unread counts
-            const unreadCounts = {};
-            Object.keys(messagesByClient).forEach(clientId => {
-                unreadCounts[clientId] = messagesByClient[clientId].filter(m => !m.is_read && m.created_by !== 'admin').length;
-            });
-            
-            // Create layout
-            const layout = this.createElement('div', 'messages-layout');
-            layout.style.cssText = 'display: grid; grid-template-columns: 280px 1fr; gap: 1.5rem; height: calc(100vh - 180px); overflow: hidden;';
-            
-            // Client sidebar
-            const sidebar = this.createElement('div', 'clients-sidebar');
-            sidebar.style.cssText = 'border-right: 1px solid var(--border-color); padding-right: 1rem; overflow-y: auto; display: flex; flex-direction: column;';
-            
-            const sidebarTitle = this.createElement('h3', '', 'Clients');
-            sidebarTitle.style.cssText = 'margin-bottom: 1rem; font-size: 1.1rem; color: var(--text-primary);';
-            sidebar.appendChild(sidebarTitle);
-            
-            if (clients.length === 0) {
-                sidebar.appendChild(this.createElement('p', 'text-secondary', 'No clients yet'));
-            } else {
-                clients.forEach(client => {
-                    const clientBtn = this.createElement('button', 'client-item');
-                    clientBtn.style.cssText = 'width: 100%; text-align: left; padding: 0.75rem 1rem; border: none; border-radius: 8px; margin-bottom: 0.25rem; background: transparent; cursor: pointer; transition: all 0.15s; color: var(--text-primary); border-left: 3px solid transparent;';
-                    
-                    clientBtn.addEventListener('mouseenter', () => {
-                        clientBtn.style.background = 'rgba(33, 150, 243, 0.1)';
-                        clientBtn.style.borderLeftColor = 'var(--primary-color)';
-                    });
-                    clientBtn.addEventListener('mouseleave', () => {
-                        clientBtn.style.background = 'transparent';
-                        clientBtn.style.borderLeftColor = 'transparent';
-                    });
-                    
-                    const topRow = this.createElement('div', '');
-                    topRow.style.cssText = 'display: flex; justify-content: space-between; align-items: center;';
-                    
-                    const clientName = this.createElement('div', '', client.name);
-                    clientName.style.cssText = 'font-weight: 600; color: inherit; font-size: 0.95rem;';
-                    topRow.appendChild(clientName);
-                    
-                    const unreadCount = unreadCounts[client.id] || 0;
-                    if (unreadCount > 0) {
-                        const badge = this.createElement('span', '', unreadCount.toString());
-                        badge.style.cssText = 'display: inline-flex; align-items: center; justify-content: center; min-width: 20px; height: 20px; padding: 0 6px; background: var(--secondary-color); color: white; border-radius: 10px; font-size: 0.7rem; font-weight: 700;';
-                        topRow.appendChild(badge);
-                    }
-                    
-                    clientBtn.appendChild(topRow);
-                    
-                    if (client.email) {
-                        const email = this.createElement('div', '', client.email);
-                        email.style.cssText = 'font-size: 0.75rem; color: var(--text-secondary); margin-top: 0.25rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;';
-                        clientBtn.appendChild(email);
-                    }
-                    
-                    clientBtn.addEventListener('click', async () => {
-                        // Remove active state from all buttons
-                        document.querySelectorAll('.client-item').forEach(btn => {
-                            btn.style.background = 'transparent';
-                            btn.style.borderLeftColor = 'transparent';
-                        });
-                        
-                        // Set active state
-                        clientBtn.style.background = 'rgba(33, 150, 243, 0.15)';
-                        clientBtn.style.borderLeftColor = 'var(--primary-color)';
-                        
-                        // Fetch fresh messages for this client
-                        const token = localStorage.getItem('auctus_token');
-                        const messagesRes = await fetch(`/.netlify/functions/client-messages?client_id=${client.id}`, {
-                            headers: { 'Authorization': `Bearer ${token}` }
-                        });
-                        const clientMessages = await messagesRes.json();
-                        await this.showClientMessages(client.id, Array.isArray(clientMessages) ? clientMessages : []);
-                    });
-                    sidebar.appendChild(clientBtn);
-                });
-            }
-            
-            // Messages panel
-            const messagesPanel = this.createElement('div', 'messages-panel');
-            messagesPanel.id = 'messages-panel';
-            messagesPanel.style.cssText = 'display: flex; flex-direction: column; align-items: center; justify-content: center; color: var(--text-secondary);';
-            messagesPanel.innerHTML = '<i class="fas fa-envelope" style="font-size: 3rem; margin-bottom: 1rem; opacity: 0.3;"></i><p>Select a client to view messages</p>';
-            
-            layout.appendChild(sidebar);
-            layout.appendChild(messagesPanel);
-            container.appendChild(layout);
-            
-        } catch (error) {
-            console.error('Error rendering messages view:', error);
-            const container = document.getElementById('messages-view');
-            container.innerHTML = '<div class="error-message">Failed to load messages</div>';
-        }
-    }
-    
-    async showClientMessages(clientId, messages = []) {
-        console.log('showClientMessages called with clientId:', clientId, 'messages:', messages);
-        
-        const panel = document.getElementById('messages-panel');
-        panel.innerHTML = '';
-        panel.style.cssText = 'display: flex; flex-direction: column; height: 100%; overflow: hidden;';
-        
-        // Get client name
-        const token = localStorage.getItem('auctus_token');
-        const clientsRes = await fetch('/.netlify/functions/clients', { 
-            headers: { 'Authorization': `Bearer ${token}` }
-        });
-        const clients = await clientsRes.json();
-        const client = clients.find(c => c.id == clientId);
-        
-        console.log('Found client:', client);
-        
-        // Header - compact and clean
-        const header = this.createElement('div', '');
-        header.style.cssText = 'padding: 1rem 1.5rem; border-bottom: 1px solid var(--border-color); flex-shrink: 0; background: var(--bg-secondary);';
-        
-        const clientName = this.createElement('h3', '', client ? client.name : 'Client Messages');
-        clientName.style.cssText = 'margin: 0; font-size: 1.2rem; color: var(--text-primary);';
-        header.appendChild(clientName);
-        
-        if (client && client.email) {
-            const email = this.createElement('div', '', client.email);
-            email.style.cssText = 'font-size: 0.85rem; color: var(--text-secondary); margin-top: 0.25rem;';
-            header.appendChild(email);
-        }
-        
-        panel.appendChild(header);
-        
-        // Messages feed - looks like iMessage
-        const messagesFeed = this.createElement('div', '');
-        messagesFeed.style.cssText = 'flex: 1; overflow-y: auto; padding: 1.5rem; background: var(--bg-primary); display: flex; flex-direction: column;';
-        
-        console.log('Messages array length:', messages.length);
-        
-        if (messages.length === 0) {
-            const emptyMsg = this.createElement('div', '');
-            emptyMsg.style.cssText = 'text-align: center; padding: 3rem 2rem; color: var(--text-secondary);';
-            emptyMsg.innerHTML = '<i class="fas fa-comments" style="font-size: 3rem; opacity: 0.3; margin-bottom: 1rem; display: block;"></i><p style="margin: 0;">No messages yet. Start the conversation below!</p>';
-            messagesFeed.appendChild(emptyMsg);
-        } else {
-            // Sort messages by date
-            const sortedMessages = [...messages].sort((a, b) => new Date(a.created_at) - new Date(b.created_at));
-            
-            console.log('Rendering', sortedMessages.length, 'messages');
-            
-            sortedMessages.forEach((msg, index) => {
-                const isAdmin = msg.created_by === 'admin';
-                const showTimestamp = index === 0 || 
-                    (new Date(msg.created_at).getTime() - new Date(sortedMessages[index - 1].created_at).getTime() > 3600000); // 1 hour
-                
-                // Timestamp divider (if needed)
-                if (showTimestamp) {
-                    const timestampDiv = this.createElement('div', '');
-                    timestampDiv.style.cssText = 'text-align: center; margin: 1rem 0 0.5rem; color: var(--text-secondary); font-size: 0.75rem;';
-                    const date = new Date(msg.created_at);
-                    const today = new Date();
-                    const yesterday = new Date(today);
-                    yesterday.setDate(yesterday.getDate() - 1);
-                    
-                    let dateLabel;
-                    if (date.toDateString() === today.toDateString()) {
-                        dateLabel = 'Today';
-                    } else if (date.toDateString() === yesterday.toDateString()) {
-                        dateLabel = 'Yesterday';
-                    } else {
-                        dateLabel = date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
-                    }
-                    timestampDiv.textContent = dateLabel;
-                    messagesFeed.appendChild(timestampDiv);
-                }
-                
-                // Message bubble container (row)
-                const msgRow = this.createElement('div', '');
-                msgRow.style.cssText = `display: flex; align-items: flex-end; gap: 0.5rem; margin-bottom: 0.25rem; ${isAdmin ? 'flex-direction: row-reverse;' : 'flex-direction: row;'}`;
-                
-                // Message bubble
-                const bubble = this.createElement('div', '');
-                bubble.style.cssText = `
-                    max-width: 65%;
-                    padding: 0.65rem 1rem;
-                    border-radius: 18px;
-                    background: ${isAdmin ? '#007AFF' : '#E5E5EA'};
-                    color: ${isAdmin ? 'white' : '#000000'};
-                    box-shadow: 0 1px 2px rgba(0,0,0,0.1);
-                    word-wrap: break-word;
-                    position: relative;
-                `;
-                
-                // Add tail to bubble (like iMessage)
-                const tail = this.createElement('div', '');
-                tail.style.cssText = `
-                    position: absolute;
-                    bottom: 0;
-                    width: 0;
-                    height: 0;
-                    border-style: solid;
-                    ${isAdmin ? 
-                        'right: -6px; border-width: 0 0 10px 8px; border-color: transparent transparent transparent #007AFF;' : 
-                        'left: -6px; border-width: 0 8px 10px 0; border-color: transparent #E5E5EA transparent transparent;'}
-                `;
-                bubble.appendChild(tail);
-                
-                // Message content wrapper
-                const contentWrapper = this.createElement('div', '');
-                
-                // Message text
-                const content = this.createElement('div', '');
-                content.style.cssText = 'line-height: 1.4; font-size: 0.95rem;';
-                content.textContent = msg.message || msg.content;
-                contentWrapper.appendChild(content);
-                
-                bubble.appendChild(contentWrapper);
-                msgRow.appendChild(bubble);
-                
-                // Time (shown next to bubble on same line)
-                const time = this.createElement('div', '');
-                time.style.cssText = 'font-size: 0.7rem; color: var(--text-secondary); padding-bottom: 0.25rem; white-space: nowrap;';
-                const msgDate = new Date(msg.created_at);
-                time.textContent = msgDate.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
-                msgRow.appendChild(time);
-                
-                messagesFeed.appendChild(msgRow);
-            });
-            
-            // Scroll to bottom after rendering
-            setTimeout(() => {
-                messagesFeed.scrollTop = messagesFeed.scrollHeight;
-            }, 50);
-        }
-        
-        panel.appendChild(messagesFeed);
-        
-        // Compose form - compact and modern
-        const composeSection = this.createElement('div', '');
-        composeSection.style.cssText = 'flex-shrink: 0; border-top: 1px solid var(--border-color); padding: 1rem 1.5rem; background: var(--bg-secondary);';
-        
-        // Compose form
-        const composeForm = this.createElement('form', '');
-        composeForm.style.cssText = 'display: flex; gap: 0.75rem; align-items: flex-end;';
-        
-        const messageInput = this.createElement('textarea', 'form-input');
-        messageInput.rows = 1;
-        messageInput.placeholder = 'Type a message...';
-        messageInput.required = true;
-        messageInput.style.cssText = 'flex: 1; padding: 0.75rem 1rem; border: 1px solid var(--border-color); border-radius: 20px; background: var(--bg-primary); color: var(--text-primary); font-size: 0.95rem; resize: none; max-height: 100px; font-family: inherit;';
-        
-        // Auto-resize textarea as user types
-        messageInput.addEventListener('input', function() {
-            this.style.height = 'auto';
-            this.style.height = Math.min(this.scrollHeight, 100) + 'px';
-        });
-        
-        // Send on Enter, new line on Shift+Enter
-        messageInput.addEventListener('keydown', function(e) {
-            if (e.key === 'Enter' && !e.shiftKey) {
-                e.preventDefault();
-                composeForm.dispatchEvent(new Event('submit'));
-            }
-        });
-        
-        const sendBtn = this.createElement('button', 'btn-primary');
-        sendBtn.type = 'submit';
-        sendBtn.style.cssText = 'padding: 0.75rem 1rem; background: var(--primary-color); color: white; border: none; border-radius: 50%; cursor: pointer; font-weight: 600; transition: all 0.2s; display: flex; align-items: center; justify-content: center; width: 40px; height: 40px;';
-        sendBtn.innerHTML = '<i class="fas fa-arrow-up"></i>';
-        
-        sendBtn.addEventListener('mouseenter', () => {
-            sendBtn.style.transform = 'scale(1.05)';
-            sendBtn.style.boxShadow = '0 4px 12px rgba(33, 150, 243, 0.3)';
-        });
-        sendBtn.addEventListener('mouseleave', () => {
-            sendBtn.style.transform = 'scale(1)';
-            sendBtn.style.boxShadow = 'none';
-        });
-        
-        composeForm.appendChild(messageInput);
-        composeForm.appendChild(sendBtn);
-        
-        composeForm.addEventListener('submit', async (e) => {
-            e.preventDefault();
-            
-            try {
-                const response = await fetch('/.netlify/functions/client-messages', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'Authorization': `Bearer ${token}`
-                    },
-                    body: JSON.stringify({
-                        client_id: clientId,
-                        subject: null,
-                        message: messageInput.value,
-                        created_by: 'admin'
-                    })
-                });
-                
-                if (response.ok) {
-                    messageInput.value = '';
-                    messageInput.style.height = 'auto';
-                    
-                    // Refresh just this client's messages
-                    const messagesRes = await fetch(`/.netlify/functions/client-messages?client_id=${clientId}`, {
-                        headers: { 'Authorization': `Bearer ${token}` }
-                    });
-                    const updatedMessages = await messagesRes.json();
-                    await this.showClientMessages(clientId, Array.isArray(updatedMessages) ? updatedMessages : []);
-                    
-                    window.app.showNotification('Message sent!');
-                } else {
-                    alert('Failed to send message');
-                }
-            } catch (error) {
-                console.error('Error sending message:', error);
-                alert('Failed to send message');
-            }
-        });
-        
-        composeSection.appendChild(composeForm);
-        panel.appendChild(composeSection);
-    }
-    
     async renderClientAccountsView() {
-        console.log('Rendering client accounts view...');
-        
-        try {
-            const token = localStorage.getItem('auctus_token');
-            const headers = { 'Authorization': `Bearer ${token}` };
-            
-            // Fetch portal users and clients
-            const [usersRes, clientsRes, messagesRes] = await Promise.all([
-                fetch('/.netlify/functions/client-portal-users', { headers }),
-                fetch('/.netlify/functions/clients', { headers }),
-                fetch('/.netlify/functions/client-messages', { headers })
-            ]);
-            
-            const portalUsers = await usersRes.json();
-            const clients = await clientsRes.json();
-            const messages = await messagesRes.json();
-            
-            const container = document.getElementById('client-accounts-view');
-            container.innerHTML = '';
-            
-            // Build header
-            const viewHeader = this.createElement('div', 'view-header');
-            const title = this.createElement('h2', '', 'Client Portal Accounts');
-            const addBtn = this.createElement('button', 'add-btn');
-            addBtn.innerHTML = '<i class="fas fa-plus"></i> Create Account';
-            addBtn.addEventListener('click', () => window.clientAccountManager.openCreateAccountModal());
-            viewHeader.appendChild(title);
-            viewHeader.appendChild(addBtn);
-            container.appendChild(viewHeader);
-            
-            // Stats cards
-            const statsGrid = this.createElement('div', '');
-            statsGrid.style.cssText = 'display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1.5rem; margin-bottom: 2rem;';
-            
-            const activeAccounts = portalUsers.length;
-            const unreadMessages = Array.isArray(messages) ? messages.filter(m => !m.is_read && m.created_by !== 'admin').length : 0;
-            
-            const statsData = [
-                { label: 'Active Accounts', value: activeAccounts, icon: 'user-check', color: 'var(--primary-color)' },
-                { label: 'Unread Messages', value: unreadMessages, icon: 'envelope', color: 'var(--secondary-color)' },
-                { label: 'Total Clients', value: clients.length, icon: 'users', color: '#FF9800' }
-            ];
-            
-            statsData.forEach(stat => {
-                const statCard = this.createElement('div', '');
-                statCard.style.cssText = 'padding: 1.5rem; background: var(--bg-secondary); border: 1px solid var(--border-color); border-radius: 12px;';
-                
-                const iconDiv = this.createElement('div', '');
-                iconDiv.innerHTML = `<i class="fas fa-${stat.icon}" style="font-size: 2rem; color: ${stat.color}; margin-bottom: 0.5rem;"></i>`;
-                
-                const valueDiv = this.createElement('div', '');
-                valueDiv.style.cssText = 'font-size: 2rem; font-weight: 700; margin-bottom: 0.25rem;';
-                valueDiv.textContent = stat.value;
-                
-                const labelDiv = this.createElement('div', 'text-secondary', stat.label);
-                
-                statCard.appendChild(iconDiv);
-                statCard.appendChild(valueDiv);
-                statCard.appendChild(labelDiv);
-                statsGrid.appendChild(statCard);
-            });
-            
-            container.appendChild(statsGrid);
-            
-            // Accounts list
-            if (portalUsers.length === 0) {
-                container.appendChild(this.renderEmptyState('user-lock', 'No portal accounts', 'Create your first client portal account'));
-            } else {
-                const listContainer = this.createElement('div', 'list-container');
-                
-                portalUsers.forEach(user => {
-                    const client = clients.find(c => c.id == user.client_id);
-                    const clientMessages = Array.isArray(messages) ? messages.filter(m => m.client_id == user.client_id) : [];
-                    const unreadCount = clientMessages.filter(m => !m.is_read && m.created_by !== 'admin').length;
-                    
-                    const card = this.createElement('div', 'list-item');
-                    
-                    const header = this.createElement('div', 'item-header');
-                    const titleDiv = this.createElement('div');
-                    const itemTitle = this.createElement('div', 'item-title', client ? client.name : 'Unknown Client');
-                    const itemSubtitle = this.createElement('div', 'item-subtitle', `@${user.username}`);
-                    titleDiv.appendChild(itemTitle);
-                    titleDiv.appendChild(itemSubtitle);
-                    header.appendChild(titleDiv);
-                    
-                    if (unreadCount > 0) {
-                        const badge = this.createElement('span', 'item-status status-active', `${unreadCount} unread`);
-                        header.appendChild(badge);
-                    }
-                    
-                    card.appendChild(header);
-                    
-                    const meta = this.createElement('div', 'item-meta');
-                    
-                    if (user.last_login) {
-                        const loginSpan = document.createElement('span');
-                        loginSpan.innerHTML = `<i class="fas fa-clock"></i> Last login: ${new Date(user.last_login).toLocaleString()}`;
-                        meta.appendChild(loginSpan);
-                    }
-                    
-                    const msgSpan = document.createElement('span');
-                    msgSpan.innerHTML = `<i class="fas fa-envelope"></i> ${clientMessages.length} message${clientMessages.length !== 1 ? 's' : ''}`;
-                    meta.appendChild(msgSpan);
-                    
-                    card.appendChild(meta);
-                    
-                    // Actions
-                    const actions = this.createElement('div', 'item-actions');
-                    actions.style.cssText = 'margin-top: 1rem; display: flex; gap: 0.5rem; flex-wrap: wrap;';
-                    
-                    const viewBtn = this.createElement('button', 'btn-secondary');
-                    viewBtn.innerHTML = '<i class="fas fa-eye"></i> View Messages';
-                    viewBtn.addEventListener('click', () => {
-                        window.app.loadView('messages');
-                        setTimeout(() => this.showClientMessages(user.client_id, clientMessages), 100);
-                    });
-                    
-                    const postBtn = this.createElement('button', 'btn-secondary');
-                    postBtn.innerHTML = '<i class="fas fa-bullhorn"></i> Post Update';
-                    postBtn.addEventListener('click', () => window.clientAccountManager.openPostUpdateModal(user.client_id));
-                    
-                    const editBtn = this.createElement('button', 'btn-secondary');
-                    editBtn.innerHTML = '<i class="fas fa-edit"></i> Edit';
-                    editBtn.addEventListener('click', () => window.clientAccountManager.editAccount(user.id));
-                    
-                    const deleteBtn = this.createElement('button', 'btn-secondary');
-                    deleteBtn.style.color = '#f44336';
-                    deleteBtn.innerHTML = '<i class="fas fa-trash"></i> Delete';
-                    deleteBtn.addEventListener('click', () => window.clientAccountManager.deleteAccount(user.id));
-                    
-                    actions.appendChild(viewBtn);
-                    actions.appendChild(postBtn);
-                    actions.appendChild(editBtn);
-                    actions.appendChild(deleteBtn);
-                    card.appendChild(actions);
-                    
-                    listContainer.appendChild(card);
-                });
-                
-                container.appendChild(listContainer);
-            }
-            
-        } catch (error) {
-            console.error('Error rendering client accounts view:', error);
-            const container = document.getElementById('client-accounts-view');
-            container.innerHTML = '<div class="error-message">Failed to load client accounts</div>';
-        }
+        console.warn('[ViewManager] renderClientAccountsView is deprecated. Redirecting to renderClientsView.');
+        return this.renderClientsView({ focusSection: 'portal' });
     }
 }
 
 // Initialize view manager
 window.viewManager = new ViewManager();
+

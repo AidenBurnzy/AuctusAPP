@@ -11,7 +11,7 @@
     <title>Auctus Ventures</title>
     <link rel="manifest" href="manifest.json">
     <link rel="apple-touch-icon" href="icons/icon-192.png">
-    <link rel="stylesheet" href="css/styles.css?v=20251028-1">
+    <link rel="stylesheet" href="css/styles.css?v=20251028-2">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 </head>
 <body>
@@ -169,7 +169,6 @@
             <div id="projects-view" class="view"></div>
             <div id="websites-view" class="view"></div>
             <div id="finances-view" class="view"></div>
-            <div id="messages-view" class="view"></div>
             <div id="client-accounts-view" class="view"></div>
             <div id="notes-view" class="view"></div>
             <div id="settings-view" class="view"></div>
@@ -203,14 +202,6 @@
                     <button class="nav-item" data-view="finances">
                         <i class="fas fa-dollar-sign"></i>
                         <span>Finances</span>
-                    </button>
-                    <button class="nav-item" data-view="messages">
-                        <i class="fas fa-envelope"></i>
-                        <span>Messages</span>
-                    </button>
-                    <button class="nav-item" data-view="client-accounts">
-                        <i class="fas fa-user-lock"></i>
-                        <span>Client Accounts</span>
                     </button>
                     <button class="nav-item" data-view="notes">
                         <i class="fas fa-sticky-note"></i>
@@ -278,14 +269,6 @@
                 <i class="fas fa-dollar-sign"></i>
                 <span>Finances</span>
             </button>
-            <button class="nav-btn" data-view="messages">
-                <i class="fas fa-envelope"></i>
-                <span>Messages</span>
-            </button>
-            <button class="nav-btn" data-view="client-accounts">
-                <i class="fas fa-user-lock"></i>
-                <span>Client Accounts</span>
-            </button>
             <button class="nav-btn" data-view="notes">
                 <i class="fas fa-sticky-note"></i>
                 <span>Notes</span>
@@ -306,7 +289,7 @@
         </header>
 
         <div id="client-portal-container" style="display: flex; flex-direction: column; flex: 1; overflow: hidden;">
-            <main class="client-portal-main-content" id="client-portal-content" style="flex: 1; overflow-y: auto; padding: 2rem; padding-top: calc(70px + 2rem);">
+            <main class="main-content" id="client-portal-content" style="flex: 1; overflow-y: auto; padding: 2rem; padding-top: calc(70px + 2rem);">
                 <!-- Client portal content will be dynamically loaded here -->
             </main>
         </div>
@@ -316,12 +299,12 @@
     <div id="modal-container"></div>
 
     <!-- Scripts -->
-    <script src="js/storage.js?v=20251028-1"></script>
-    <script src="js/views.js?v=20251028-1"></script>
-    <script src="js/modals.js?v=20251028-1"></script>
-    <script src="js/client-accounts.js?v=20251028-1"></script>
-    <script src="js/client-portal.js?v=20251028-1"></script>
-    <script src="js/app.js?v=20251028-1"></script>
+    <script src="js/storage.js?v=20251028-2"></script>
+    <script src="js/views.js?v=20251028-2"></script>
+    <script src="js/modals.js?v=20251028-2"></script>
+    <script src="js/client-accounts.js?v=20251028-2"></script>
+    <script src="js/client-portal.js?v=20251028-2"></script>
+    <script src="js/app.js?v=20251028-2"></script>
     
     <!-- Service Worker Registration -->
     <script>
@@ -334,7 +317,7 @@
             });
             
             // Register new service worker
-            navigator.serviceWorker.register('sw.js?v=20251028-1')
+            navigator.serviceWorker.register('sw.js?v=20251028-2')
                 .then(reg => console.log('Service Worker registered'))
                 .catch(err => console.log('Service Worker registration failed'));
         }
